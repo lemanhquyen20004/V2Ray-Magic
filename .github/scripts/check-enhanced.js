@@ -56,4 +56,35 @@ assert.match(meta.updateJson, /^https:\/\//, 'Magisk update URL must be HTTPS');
 assert.ok(manifest.zipUrl.includes(meta.version.split(' ')[0]), 'ZIP must target this release version');
 assert.ok(manifest.zipUrl.includes('-universal.zip'), 'Magisk updater must use a cross-architecture ZIP');
 
-console.log('V2Ray-Magic dashboard, quota guards, game routing and update manifest tests passed');
+// A successful FIFO write is not sufficient to prove a control operation
+// succeeded. The daemon must return its real result to the UI.
+const control = fs.readFileSync('proxy_control.sh', 'utf8');
+const service = fs.readFileSync('service.sh', 'utf8');
+assert.ok(control.includes('cmd_result.$'), 'controller must await a result for its own PID');
+assert.ok(service.includes('cmd_result.$reply_id'), 'service must report result to caller');
+assert.ok(service.includes('result=$?'), 'service must record nonzero command errors');
+assert.ok(service.includes('reload_config)') && service.includes('restart_xray\n            return $?'),
+  'reload must preserve restart failure code');
+
+// Do not destroy a previously-working config on an invalid node/URI import.
+const main = fs.readFileSync('webroot/main.js', 'utf8');
+assert.ok(main.includes('function writeValidatedConfig('), 'config must be preflighted');
+assert.ok(main.includes('config.v2.json') || main.includes("CONFIG_JSON + '.pending'"),
+  'must stage a candidate config before commit');
+assert.ok(main.includes("CONFIG_JSON + '.previous'"), 'last config backup is required');
+assert.ok(main.includes('run -test -c'), 'must use the real Xray config validator');
+assert.equal((main.match(/writeValidatedConfig\(res\.config,/g) || []).length, 2,
+  'normal and professional editors must both validate');
+
+// A quota must be one shared named counter regardless of traffic direction.
+assert.ok(limits.includes('-s "$ip" -m quota2 --name "$counter_name"'));
+assert.ok(limits.includes('-d "$ip" -m quota2 --name "$counter_name"'));
+assert.ok(limits.includes('/proc/net/xt_quota/mv2r_$short'));
+const diagnostic = fs.readFileSync('diagnostic.sh', 'utf8');
+assert.ok(html.includes('id="vm-network-report"'), 'diagnostic display missing');
+assert.ok(diagnostic.includes('Xray binary:') && diagnostic.includes('TUN interface:'),
+  'diagnostic must inspect Xray + TUN');
+assert.ok(!/rm -rf|ip rule add|iptables -F|kill -9/.test(diagnostic),
+  'read-only diagnosis must never mutate firewall or stop the radio');
+
+console.log('V2Ray-Magic control acknowledgement, config rollback staging and diagnostic checks passed');
