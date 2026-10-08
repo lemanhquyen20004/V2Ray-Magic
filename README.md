@@ -15,9 +15,9 @@ See [README_vi.md](README_vi.md) for original documentation and [CHANGELOG.md](C
 
 ## Installation and updates
 
-The GitHub repository is private; Magisk cannot fetch a private raw.githubusercontent.com update manifest without authentication. Auto-update is intentionally disabled for now. CI builds ZIP artifacts using downloaded Xray/helper/geodata dependencies. Verify mobile data, hotspot, IPv6 and stop/uninstall behavior on an Android device before regular use.
+The repository owner must switch the repo to public via GitHub Settings → General → Danger Zone → Change repository visibility. Until public, the Magisk update manifest cannot be fetched anonymously. Once public, the update manifest at `main/update.json` can serve Magisk updates. CI builds ZIP artifacts using downloaded Xray/helper/geodata dependencies. Verify mobile data, hotspot, IPv6 and stop/uninstall behavior on an Android device before regular use.
 
-## v1.22.0 features (experimental on MIUI)
+## v1.23.0 features (experimental on MIUI)
 
 - **Safe Xray controls:** preflight `xray run -test`, TUN startup rollback, and a 15-second crash watchdog that removes stale proxy routes.
 - **Dashboard:** live network-interface traffic counters, rates and an opt-in game setting.
@@ -43,3 +43,11 @@ The repo is private, so `updateJson` has deliberately been disabled. Magisk's st
 3. Test 4G with proxy **off**, then proxy **on**, then Wi-Fi ↔ 4G handovers.
 4. Check Hotspot and multiple devices before enabling IP blocking. Confirm normal connectivity after stopping Xray and rebooting.
 5. Keep a recovery path in Magisk if a ROM/kernel incompatibility appears.
+
+### Experimental per-client limits (v1.23.0)
+
+- Per-client session quota in MiB uses iptables `xt_quota2`. Unavailable kernels **do not enforce a quota** and log QUOTA_UNSUPPORTED; data counters may reset on rule reinstall/reboot. This is not a reliable per-day billing cap.
+- Optional download-only rate shaping uses `tc` HTB/U32 on the Hotspot AP interface. Upload shaping is not implemented. Unsupported or occupied qdiscs are left untouched.
+- Existing AP devices are detected via the neighbor cache, which may be empty or stale. IP policies are tied to addresses, so DHCP reassignment can change who owns an address.
+- A 15-second watchdog reconnects hotspot policies upon AP interface changes. Do not rely on it to guarantee zero unprotected packets during transitions.
+- The GitHub Actions workflow validates POSIX shell syntax, ShellCheck, JavaScript syntax/integrity and creates ARM64, x86 and universal ZIPs. **Neither radio performance nor Android networking can be proven by GitHub CI**.
