@@ -29,3 +29,12 @@
 @media(max-width:360px) { .vm-grid {gap:7px;} .vm-metric {padding:10px;}
   .vm-metric strong {font-size:15px;} .vm-overview {padding:13px;} }
 @media(prefers-reduced-motion:reduce) { .vm-overview * {scroll-behavior:auto!important;transition:none!important;} }
+
+.vm-limit-fields {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;width:100%;padding:6px 0 12px;}
+.vm-limit-fields label {display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;min-width:0;color:var(--md-on-surface-variant);}
+.vm-limit-fields label span {flex-basis:100%}
+.vm-limit-fields input {width:min(110px,50%);min-width:0;background:var(--md-surface-2);border:1px solid var(--md-outline-variant);padding:9px;color:var(--md-on-surface);border-radius:9px}
+.vm-limit-fields .btn {flex:1;min-width:72px;padding:6px 8px;}
+.vm-client-row {flex-wrap:wrap}
+.vm-client-row > div:first-child {min-width:0;flex:1}
+@media(max-width:420px){.vm-limit-fields{grid-template-columns:1fr}}
