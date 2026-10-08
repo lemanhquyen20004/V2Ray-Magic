@@ -1353,6 +1353,8 @@ function renderProfiles() {
             () => { openEditSubModal(category); closeAllMenus(); }));
         dropdown.appendChild(_mkButton(t('menu_deduplicate'), '',
             () => { deduplicateCategory(category); closeAllMenus(); }));
+        dropdown.appendChild(_mkButton('Đo TCP toàn bộ node', 'btn-ping-category',
+            (e) => checkTcpWithClose(e, category)));
         dropdown.appendChild(_mkButton(t('menu_check_http'), 'btn-ping-category',
             (e) => checkHttpWithClose(e, category)));
         dropdown.appendChild(_mkButton(t('menu_check_ip'), 'btn-ping-category',
@@ -1419,11 +1421,21 @@ function renderProfiles() {
             nodeMenuWrap.className = 'node-menu-container';
             nodeMenuWrap.style.cssText = "display: flex; align-items: center; justify-content: flex-end; gap: 8px; position: relative;";
 
+            const probeLabels = document.createElement('div');
+            probeLabels.className = 'vm-node-probes';
+            const tcpSpan = document.createElement('span');
+            tcpSpan.id = `tcp-${category}-${node.id}`;
+            tcpSpan.className = 'ping-info vm-tcp-ping';
+            tcpSpan.textContent = 'TCP —';
+            tcpSpan.title = 'Kết nối TCP tới máy chủ: không phải ping game hay proxy HTTP';
+            probeLabels.appendChild(tcpSpan);
             const pingSpan = document.createElement('span');
             pingSpan.id = `ping-${category}-${node.id}`;
-            pingSpan.className = 'ping-info';
-            pingSpan.style.cssText = "text-align: right; white-space: nowrap;";
-            nodeMenuWrap.appendChild(pingSpan);
+            pingSpan.className = 'ping-info vm-http-ping';
+            pingSpan.textContent = 'HTTP —';
+            pingSpan.title = 'HTTP qua chính node, bao gồm thời gian thiết lập proxy';
+            probeLabels.appendChild(pingSpan);
+            nodeMenuWrap.appendChild(probeLabels);
 
             const nodeKebab = _mkButton("⋮", 'btn-menu-trigger', function (e) { toggleNodeMenu(e, this); });
             nodeKebab.style.flexShrink = '0';
@@ -1440,6 +1452,8 @@ function renderProfiles() {
                 (e) => copyNodePayloadUrl(e, category, node.id)));
             nodeDropdown.appendChild(_mkButton(t('menu_copy_full_config'), '',
                 (e) => copyNodeFullConfig(e, category, node.id)));
+            nodeDropdown.appendChild(_mkButton('Đo TCP (máy chủ)', 'btn-ping-category',
+                (e) => checkSingleTcpWithClose(e, category, node.id)));
             nodeDropdown.appendChild(_mkButton(t('menu_check_http'), 'btn-ping-category',
                 (e) => checkSingleHttpWithClose(e, category, node.id)));
             nodeDropdown.appendChild(_mkButton(t('menu_check_ip'), 'btn-ping-category',
@@ -3891,7 +3905,7 @@ function showToast(message, type = 'success') {
 // Probe slots. Only NODE_TEST_CONCURRENCY probes run at once, so a small pool
 // of listen address/port pairs is enough and — unlike the old
 // `index % 250` scheme — cannot collide once a category exceeds 250 nodes.
-const NODE_TEST_CONCURRENCY = 10;
+const NODE_TEST_CONCURRENCY = 4; // Limit Android CPU/root-shell pressure on older MIUI
 const NODE_TEST_SLOTS = 16;
 const _nodeTestSlotBusy = new Array(NODE_TEST_SLOTS).fill(false);
 
@@ -3963,6 +3977,42 @@ function _setPingSpan(pingSpan, text, colorVar) {
     pingSpan.style.color = colorVar;
 }
 
+// TCP connect delay to a node's advertised endpoint; intentionally not
+// confused with HTTP-through-proxy delay or in-game latency.
+async function _execTcpNodeProbe(node, span) {
+    _setPingSpan(span, 'TCP …', 'var(--text-muted)');
+    if (!span || !node || !node.address || !node.port || node.protocol === 'chain') {
+        _setPingSpan(span, 'TCP N/A', 'var(--text-muted)');
+        return;
+    }
+    const cmd = 'sh ' + shQuote(MODDIR + '/v2magic.tool') + ' node tcp ' +
+        shQuote(String(node.address)) + ' ' + shQuote(String(node.port));
+    await new Promise(resolve => {
+        let settled = false;
+        const timer = setTimeout(() => {
+            if (settled) return;
+            settled = true;
+            _setPingSpan(span, 'TCP timeout', 'var(--red, #ff1744)');
+            span.title = 'Không nhận được phản hồi từ công cụ đo TCP';
+            resolve();
+        }, 8500);
+        execShell(cmd, (out, err, code) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            const m = /^TCP_MS (\d{1,4})$/.exec((out || '').trim());
+            if (code === 0 && m) {
+                _setPingSpan(span, 'TCP ' + m[1] + 'ms', 'var(--green, #00e676)');
+                span.title = 'Thời gian mở TCP tới ' + node.address + ':' + node.port;
+            } else {
+                _setPingSpan(span, 'TCP lỗi', 'var(--red, #ff1744)');
+                span.title = (err || out || 'TCP không kết nối được').slice(0, 160);
+            }
+            resolve();
+        });
+    });
+}
+
 // Runs one probe against a node in an isolated xray instance.
 // `mode` is 'http' (latency in ms) or 'ip' (egress IP address).
 async function _execNodeProbe(node, pingSpan, mode) {
@@ -4000,7 +4050,7 @@ async function _execNodeProbe(node, pingSpan, mode) {
         if (mode === 'http') {
             const val = parseFloat(output.trim());
             if (!isNaN(val) && val > 0) {
-                _setPingSpan(pingSpan, `${Math.round(val * 1000)}ms`, "var(--green, #00e676)");
+                _setPingSpan(pingSpan, `HTTP ${Math.round(val * 1000)}ms`, "var(--green, #00e676)");
             } else {
                 _setPingSpan(pingSpan, "?", "var(--red, #ff1744)");
             }
@@ -4024,10 +4074,15 @@ async function _pingCategory(category, mode) {
 
     await parallelWithLimit(catData.nodes, NODE_TEST_CONCURRENCY, async (node) => {
         const pingSpan = document.getElementById(`ping-${category}-${node.id}`);
-        await _execNodeProbe(node, pingSpan, mode);
+        if (mode === 'tcp') {
+            await _execTcpNodeProbe(node, document.getElementById(`tcp-${category}-${node.id}`));
+        } else {
+            await _execNodeProbe(node, pingSpan, mode);
+        }
     });
 }
 
+const pingCategoryCheckTcp = (category) => _pingCategory(category, 'tcp');
 const pingCategoryCheckHttp = (category) => _pingCategory(category, 'http');
 const pingCategoryCheckIp = (category) => _pingCategory(category, 'ip');
 
@@ -4037,14 +4092,34 @@ async function _checkSingleNode(category, nodeId, mode) {
     const node = profiles[category]?.nodes?.find(n => n.id === nodeId);
     if (!node) return;
     const pingSpan = document.getElementById(`ping-${category}-${node.id}`);
-    await _execNodeProbe(node, pingSpan, mode);
+    if (mode === 'tcp') {
+        await _execTcpNodeProbe(node, document.getElementById(`tcp-${category}-${node.id}`));
+    } else {
+        await _execNodeProbe(node, pingSpan, mode);
+    }
 }
 
+const checkSingleNodeTcp = (category, nodeId) => _checkSingleNode(category, nodeId, 'tcp');
 const checkSingleNodeHttp = (category, nodeId) => _checkSingleNode(category, nodeId, 'http');
 const checkSingleNodeIp = (category, nodeId) => _checkSingleNode(category, nodeId, 'ip');
 
+async function checkTcpWithClose(event, category) {
+    const btn = event.currentTarget;
+    closeAllMenus();
+    btn.disabled = true;
+    try { await pingCategoryCheckTcp(category); }
+    finally { btn.disabled = false; }
+}
+
+async function checkSingleTcpWithClose(event, category, nodeId) {
+    const btn = event.currentTarget;
+    closeAllMenus();
+    btn.disabled = true;
+    try { await checkSingleNodeTcp(category, nodeId); }
+    finally { btn.disabled = false; }
+}
+
 async function checkHttpWithClose(event, category) {
-    showLoading(`${t("toast_check_http")}${category}...`);
     const btn = event.currentTarget;
     closeAllMenus();
     btn.disabled = true;
@@ -4053,12 +4128,10 @@ async function checkHttpWithClose(event, category) {
         await pingCategoryCheckHttp(category);
     } finally {
         btn.disabled = false;
-        hideLoading();
     }
 }
 
 async function checkIpWithClose(event, category) {
-    showLoading(`${t("toast_check_ip")}${category}...`);
     const btn = event.currentTarget;
     closeAllMenus();
     btn.disabled = true;
@@ -4067,14 +4140,12 @@ async function checkIpWithClose(event, category) {
         await pingCategoryCheckIp(category);
     } finally {
         btn.disabled = false;
-        hideLoading();
     }
 }
 
 async function checkSingleHttpWithClose(event, category, nodeId) {
     const catData = profiles[category];
     const node = catData?.nodes?.find(n => n.id === nodeId);
-    showLoading(`${t("toast_check_http")}${node ? node.name : ''}...`);
     const btn = event.currentTarget;
     closeAllMenus();
     btn.disabled = true;
@@ -4083,14 +4154,12 @@ async function checkSingleHttpWithClose(event, category, nodeId) {
         await checkSingleNodeHttp(category, nodeId);
     } finally {
         btn.disabled = false;
-        hideLoading();
     }
 }
 
 async function checkSingleIpWithClose(event, category, nodeId) {
     const catData = profiles[category];
     const node = catData?.nodes?.find(n => n.id === nodeId);
-    showLoading(`${t("toast_check_ip")}${node ? node.name : ''}...`);
     const btn = event.currentTarget;
     closeAllMenus();
     btn.disabled = true;
@@ -4099,7 +4168,6 @@ async function checkSingleIpWithClose(event, category, nodeId) {
         await checkSingleNodeIp(category, nodeId);
     } finally {
         btn.disabled = false;
-        hideLoading();
     }
 }
 
