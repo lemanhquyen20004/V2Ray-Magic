@@ -46,6 +46,11 @@ if [ -f "$STUB_DIR/run/iface_monitor_child.pid" ]; then
 fi
 log "stopped module processes"
 
+# Remove our tether-interface FORWARD rules before dropping the module.
+if [ -f "$MODDIR/hotspot_manager.sh" ]; then
+    sh "$MODDIR/hotspot_manager.sh" cleanup >/dev/null 2>&1 || :
+fi
+
 # --- 2. iptables / ip6tables ----------------------------------------------
 
 # Unlink, flush and delete a chain, tolerating any of it not existing.
