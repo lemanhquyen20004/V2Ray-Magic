@@ -195,6 +195,21 @@
   }
   // Optional profile: do not disable Xray's firewall or change any OS routes.
   // Only skip the original all-UDP/443 block rule to avoid blocking game UDP/QUIC.
+  // Read-only report. No proxy configuration content or server credentials.
+  function refreshNetworkReport() {
+    const output = ui('vm-network-report');
+    const button = ui('vm-check-network');
+    if (!output || !button) return;
+    button.disabled = true;
+    output.textContent = 'Đang kiểm tra trạng thái mạng...';
+    const diagnostic = '/data/adb/modules/magic_v2ray/diagnostic.sh';
+    execShell('sh ' + shQuote(diagnostic), (out, err, code) => {
+      button.disabled = false;
+      output.textContent = code === 0
+        ? ((out || '').trim() || 'Không có dữ liệu chẩn đoán')
+        : 'Không chạy được công cụ chẩn đoán: ' + (err || 'mã lỗi ' + code);
+    });
+  }
   function saveGameMode() {
     const toggle = ui('vm-game-mode');
     if (!toggle) return;
@@ -251,6 +266,8 @@
     ui('vm-game-mode')?.addEventListener('change', saveGameMode);
     ui('vm-auto-subs')?.addEventListener('change', saveAutoSubscriptionToggle);
     ui('vm-refresh-hotspot')?.addEventListener('click', refreshHotspot);
+    ui('vm-check-network')?.addEventListener('click', refreshNetworkReport);
+    document.querySelector('[data-tab="tab-diagnostics"]')?.addEventListener('click', refreshNetworkReport);
     ui('vm-reload-subs')?.addEventListener('click', reloadSavedSubscriptions);
     ui('vm-hotspot-nav')?.addEventListener('click', refreshHotspot);
     document.addEventListener('visibilitychange', refreshTimer);
