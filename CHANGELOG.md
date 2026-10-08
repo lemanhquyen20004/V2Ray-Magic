@@ -1,5 +1,15 @@
 # V2Ray-Magic change log
 
+## v0.0.3 (2026-10-08) — Xray Start freeze fix
+
+- Fix broken root control acknowledgment IDs: use the shell PID `$` in both the reply filename and FIFO command so Start/Reload no longer wait 30 seconds for a nonexistent response.
+- Remove the full-screen loading overlay from the Start button; restore the Start control after completion or a 20-second UI timeout, even when the root WebUI bridge hangs.
+- Avoid unnecessary Netfilter reapplication and full Xray restart when the user only wants to start the service.
+- Display a useful error if the root service fails and keep the WebUI scrollable.
+- Add CI regression checks for the exact FIFO PID token and non-blocking Start interaction.
+- The update preserves module ID and existing private configuration. Actual MIUI/Redmi Note 8T behavior still requires a phone-side test.
+
+
 ## v0.0.2 (2026-10-08) — Magisk installation hotfix
 
 - Fix ARM64 installation failing with "Missing or empty after extraction: bin/curl".
