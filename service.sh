@@ -368,8 +368,13 @@ apply_mark_rule() {
     fi
 
     remove_mark_rule
-    $ip    rule add fwmark $FWMARK table "$iface_index" priority $RULE_PRIORITY 2>/dev/null
-    $ip -6 rule add fwmark $FWMARK table "$iface_index" priority $RULE_PRIORITY 2>/dev/null
+    if ! $ip rule add fwmark $FWMARK table "$iface_index" priority $RULE_PRIORITY 2>/dev/null; then
+        log "fwmark egress route failed for $iface"
+        return 1
+    fi
+    # IPv6 is optional and may be disabled by Android; never fail IPv4 start
+    # solely because no IPv6 egress table is available.
+    $ip -6 rule add fwmark $FWMARK table "$iface_index" priority $RULE_PRIORITY 2>/dev/null || :
     log "applied fwmark $FWMARK -> table $iface_index ($iface)"
     return 0
 }
@@ -1677,7 +1682,11 @@ start_xray() {
     fi
     # Physical egress rule is required only while our Xray service runs.
     physical_iface=$(get_active_interface) || physical_iface=""
-    [ -z "$physical_iface" ] || apply_mark_rule "$physical_iface"
+    if [ -z "$physical_iface" ] || ! apply_mark_rule "$physical_iface"; then
+        log "no safe physical egress route available; reverting to DIRECT"
+        stop_xray
+        return 1
+    fi
     start_apps_monitor
     # Hotspot restrictions are isolated from 4G by interface-scoped FORWARD jumps.
     [ -f "$MODDIR/hotspot_manager.sh" ] && sh "$MODDIR/hotspot_manager.sh" apply >/dev/null 2>&1 || :
