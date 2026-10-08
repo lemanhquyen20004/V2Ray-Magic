@@ -163,6 +163,12 @@ assert.ok(!service.includes('kill -9 "${pid_dir##*/}"'),
 assert.ok(!service.includes('$iptables -t nat -I PREROUTING ! -i $TUN_NAME'),
   'global DNS hijacking also intercepts Wi-Fi and must remain disabled');
 assert.ok(service.includes('sh "$MODDIR/emergency.sh"'), 'network failure paths must fail open');
+assert.ok(service.includes('stop_xray() {\n    stop_apps_monitor\n    remove_mark_rule'),
+  'stopped Xray must not leave fwmark255 physical routing');
+assert.ok(service.includes('[ -f "$ENABLED_FLAG" ] && is_proc_running "xray"'),
+  'network monitor must not install egress rules while proxy is stopped');
+assert.ok(rescue.includes('rule del fwmark 255 priority 1000'),
+  'emergency recovery must remove stale fwmark255 rules');
 assert.ok(installer.includes('rm -f "$DATADIR/enabled"'), 'new installer must start in direct-network safe mode');
 assert.ok(installer.includes('installed_zip_cleanup'), 'installer must only schedule exact-path cleanup');
 assert.ok(cleaner.includes('sha256sum') && cleaner.includes('Download/*'),
