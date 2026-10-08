@@ -105,6 +105,44 @@ fetch_helper() {
     echo "    installed ${dest}/xhuskydg_helper (${HELPER_VERSION})"
 }
 
+
+# Android curl is bundled as libcurl.so in vvb2060/curl-android's APK.
+# Pin the release to keep CI artifacts reproducible.
+CURL_VERSION="v8.18.0"
+CURL_BASE_URL="https://github.com/vvb2060/curl-android/releases/download/${CURL_VERSION}"
+CURL_ASSET="tool-release.apk.xz"
+CURL_TMP=""
+fetch_curl() {
+    local arch="$1"
+    local dest="bin/${arch}"
+    local version_file="${dest}/curl.version"
+    if [[ -x "${dest}/curl" && -f "$version_file" && "$(cat "$version_file")" == "$CURL_VERSION" ]]; then
+        echo "==> bin/${arch}/curl already at ${CURL_VERSION}, skipping download"
+        return
+    fi
+    if [[ -z "$CURL_TMP" ]]; then
+        CURL_TMP=$(mktemp -d)
+        echo "==> fetching Android curl ${CURL_VERSION}"
+        curl -fsSL --retry 3 --connect-timeout 20 \
+            -o "${CURL_TMP}/${CURL_ASSET}" "${CURL_BASE_URL}/${CURL_ASSET}"
+        # The release is an XZ-compressed APK (ZIP container).
+        xz -dc "${CURL_TMP}/${CURL_ASSET}" > "${CURL_TMP}/tool-release.apk"
+        unzip -tqq "${CURL_TMP}/tool-release.apk"
+    fi
+    local entry="lib/${arch}/libcurl.so"
+    if ! unzip -Z -1 "${CURL_TMP}/tool-release.apk" | grep -Fx "$entry" >/dev/null; then
+        echo "Missing ${entry} in ${CURL_ASSET}" >&2
+        exit 1
+    fi
+    mkdir -p "$dest"
+    unzip -p "${CURL_TMP}/tool-release.apk" "$entry" > "${dest}/curl.part"
+    [[ -s "${dest}/curl.part" ]] || { echo "Downloaded curl binary is empty" >&2; exit 1; }
+    chmod 0755 "${dest}/curl.part"
+    mv -f "${dest}/curl.part" "${dest}/curl"
+    printf '%s' "$CURL_VERSION" > "$version_file"
+    echo "    installed ${dest}/curl (${CURL_VERSION})"
+}
+
 # Routing databases are intentionally not stored in Git because they are
 # generated binary artifacts. Release packaging fetches them over HTTPS.
 ensure_geodata() {
@@ -150,6 +188,18 @@ pack() {
     local zipname="$OUT/${MODID}-${VERSION}-${arch}.zip"
     echo "==> $zipname"
     need "${COMMON[@]}" "$@"
+    # Install script requires all three Android executables for every ABI.
+    for abidir in "$@"; do
+        case "$abidir" in
+            bin/arm64-v8a|bin/x86_64)
+                need "$abidir/xray" "$abidir/xhuskydg_helper" "$abidir/curl"
+                for executable in xray xhuskydg_helper curl; do
+                    [[ -s "$abidir/$executable" && -x "$abidir/$executable" ]] ||
+                        { echo "Invalid executable: $abidir/$executable" >&2; exit 1; }
+                done
+                ;;
+        esac
+    done
     # -r recurses into webroot/META-INF/bin/<arch>; -x drops our internal
     # version-cache marker (not part of the module payload).
     zip -q -r -X "$zipname" "${COMMON[@]}" "$@" -x '*/*.version'
@@ -172,14 +222,15 @@ target="${args[0]:-all}"
 ensure_geodata
 
 case "$target" in
-    arm64|all)     fetch_xray arm64-v8a; fetch_helper arm64-v8a; pack arm64-v8a bin/arm64-v8a ;;&
-    x64|x86_64|all) fetch_xray x86_64;    fetch_helper x86_64;    pack x86_64    bin/x86_64 ;;&
-    universal|all) fetch_xray arm64-v8a; fetch_xray x86_64; fetch_helper arm64-v8a; fetch_helper x86_64; pack universal bin/arm64-v8a bin/x86_64 ;;&
+    arm64|all)     fetch_xray arm64-v8a; fetch_helper arm64-v8a; fetch_curl arm64-v8a; pack arm64-v8a bin/arm64-v8a ;;&
+    x64|x86_64|all) fetch_xray x86_64;    fetch_helper x86_64;    fetch_curl x86_64;    pack x86_64    bin/x86_64 ;;&
+    universal|all) fetch_xray arm64-v8a; fetch_xray x86_64; fetch_helper arm64-v8a; fetch_helper x86_64; fetch_curl arm64-v8a; fetch_curl x86_64; pack universal bin/arm64-v8a bin/x86_64 ;;&
     arm64|x64|x86_64|universal|all) ;;
     *) echo "usage: $0 [arm64|x64|universal|all]" >&2; exit 2 ;;
 esac
 
 [[ -n "$HELPER_TMP" ]] && rm -rf "$HELPER_TMP"
+[[ -n "$CURL_TMP" ]] && rm -rf "$CURL_TMP"
 
 echo
 echo "Built into $OUT/:"

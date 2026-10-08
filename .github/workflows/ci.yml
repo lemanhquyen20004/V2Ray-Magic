@@ -143,12 +143,39 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install build dependencies
-        run: sudo apt-get update && sudo apt-get install -y zip bash
+        run: sudo apt-get update && sudo apt-get install -y zip bash xz-utils unzip binutils
 
       - name: Run release packager
         run: |
           chmod +x build.sh
           ./build.sh
+
+      # Simulate the same unzip -j extraction that Magisk runs with SKIPUNZIP=1.
+      - name: Verify Android ELF binaries after Magisk-style ZIP extraction
+        run: |
+          set -euo pipefail
+          for abi in arm64-v8a x86_64; do
+            zip=$(find dist -maxdepth 1 -name "*-${abi}.zip" -print -quit)
+            [ -n "$zip" ] && [ -s "$zip" ] || { echo "::error::Missing ${abi} ZIP"; exit 1; }
+            unzip -tqq "$zip"
+            dir=$(mktemp -d)
+            unzip -j -o "$zip" "bin/${abi}/*" -d "$dir" >/dev/null
+            for f in xray xhuskydg_helper curl; do
+              test -s "$dir/$f" || { echo "::error::${abi} missing bin/$f after unzip"; exit 1; }
+              readelf -h "$dir/$f" >/dev/null || { echo "::error::${abi} $f is not ELF"; exit 1; }
+            done
+            if [ "$abi" = arm64-v8a ]; then expected=AArch64; else expected='X86-64'; fi
+            readelf -h "$dir/curl" | grep -F "$expected" >/dev/null || {
+              echo "::error::Wrong architecture in ${abi}/curl"; exit 1;
+            }
+            rm -rf "$dir"
+          done
+          universal=$(find dist -maxdepth 1 -name '*-universal.zip' -print -quit)
+          [ -s "$universal" ] || exit 1
+          for abi in arm64-v8a x86_64; do
+            unzip -Z -1 "$universal" | grep -Fx "bin/${abi}/curl" >/dev/null ||
+              { echo "::error::Universal ZIP missing ${abi}/curl"; exit 1; }
+          done
 
       - name: Upload arm64-v8a artifact
         uses: actions/upload-artifact@v4

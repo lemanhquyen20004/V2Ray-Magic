@@ -1,5 +1,14 @@
 # V2Ray-Magic change log
 
+## v0.0.2 (2026-10-08) — Magisk installation hotfix
+
+- Fix ARM64 installation failing with "Missing or empty after extraction: bin/curl".
+- Bundle Android curl for each architecture from vvb2060/curl-android v8.18.0 official release APK.
+- Require Xray, xhuskydg_helper and curl for every architecture before ZIP creation.
+- CI unpacks each ZIP using Magisk's `unzip -j` extraction pattern and verifies the three binaries, including ARM64/x86-64 ELF validation.
+- Preserve existing module ID and GPL-3.0 attribution.
+
+
 ## v0.0.1 (2026-10-08) — new maintainer version series
 
 - Start the V2Ray-Magic version series at **v0.0.1**, owned and maintained by **lemanhquyen20004**.
