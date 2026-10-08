@@ -497,24 +497,10 @@ update_vpn_bypass() {
 # 5. Mobile IP hunter
 # ===========================================================================
 
+# Keep mobile radio/telephony intact: IP hunting must never kill
+# com.android.phone or toggle airplane mode on a user's only connection.
 network_reset() {
-    log "resetting the mobile data stack"
-    # Airplane mode would kill every radio at once, breaking Wi-Fi and
-    # Bluetooth too. Restarting just the telephony process targets the mobile
-    # data stack cleanly. Matched on uid 1001 + exact cmdline so we do not
-    # catch an unrelated process whose name merely contains com.android.phone.
-    for pid_dir in /proc/[0-9]*; do
-        [ -d "$pid_dir" ] || continue
-        [ "$(stat -c '%u' "$pid_dir" 2>/dev/null)" = "1001" ] || continue
-        local cmdline
-        cmdline=$(tr '\0' ' ' < "$pid_dir/cmdline" 2>/dev/null)
-        case "$cmdline" in
-            com.android.phone|com.android.phone\ *)
-                log "killing com.android.phone (pid ${pid_dir##*/})"
-                kill -9 "${pid_dir##*/}" 2>/dev/null
-                ;;
-        esac
-    done
+    log "Mobile IP Hunter: requested IP unavailable; skipping radio restart for safety"
 }
 
 is_mobile_data_iface() {
@@ -1969,6 +1955,18 @@ until [ "$(getprop sys.boot_completed)" = "1" ] || [ "$boot_wait" -ge 600 ]; do
     boot_wait=$((boot_wait + 1))
 done
 sleep 5
+
+# Best-effort cleanup of a verified ZIP in Downloads. The installer records
+# an exact path + SHA256 only if Magisk exposed the original file path.
+# Boot storage may be locked; try a few times without blocking proxy controls.
+(
+    attempt=0
+    while [ "$attempt" -lt 30 ] && [ -f "$DATADIR/installed_zip_cleanup" ]; do
+        sh "$MODDIR/cleanup_installer.sh" >/dev/null 2>&1 || :
+        sleep 10
+        attempt=$((attempt + 1))
+    done
+) &
 
 if [ ! -e /dev/net/tun ]; then
     mkdir -p /dev/net
