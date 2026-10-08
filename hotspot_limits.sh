@@ -92,11 +92,14 @@ apply_rules() {
         # Android xt_quota2 permits short names (kernel field is 15 chars).
         # Eight hex digits preserve all four IPv4 octets without collisions.
         name=$(printf '%s\n' "$ip" | awk -F. '{printf "v%02x%02x%02x%02x",$1,$2,$3,$4}')
-        if "$IPT" -t filter -A "$CHAIN" -s "$ip" -m quota2 --name "mv2r_$name" --quota "$bytes" -j RETURN 2>/dev/null; then
+        # A single named quota must be shared across upload/download.
+        # Never use different names here: that silently grants two quotas.
+        counter_name="mv2r_$name"
+        if "$IPT" -t filter -A "$CHAIN" -s "$ip" -m quota2 --name "$counter_name" --quota "$bytes" -j RETURN 2>/dev/null; then
             "$IPT" -t filter -A "$CHAIN" -s "$ip" -j REJECT || return 1
             # Share the SAME named counter across uploads and downloads.
             # Count on both AP ingress and AP egress, without affecting 4G.
-            if "$IPT" -t filter -A "$CHAIN" -d "$ip" -m quota2 --name "$name" --quota "$bytes" -j RETURN 2>/dev/null; then
+            if "$IPT" -t filter -A "$CHAIN" -d "$ip" -m quota2 --name "$counter_name" --quota "$bytes" -j RETURN 2>/dev/null; then
                 "$IPT" -t filter -A "$CHAIN" -d "$ip" -j REJECT || return 1
             fi
         else
@@ -135,8 +138,8 @@ case "$ACTION" in
         printf 'LIMIT %s %s %s\n' "$ip" "$quota" "$rate"
         if [ "$quota" -gt 0 ]; then
           short=$(printf '%s\n' "$ip" | awk -F. '{printf "v%02x%02x%02x%02x",$1,$2,$3,$4}')
-          if [ -r "/proc/net/xt_quota/$short" ]; then
-            remaining=$(cat "/proc/net/xt_quota/$short" 2>/dev/null | tr -cd '0-9')
+          if [ -r "/proc/net/xt_quota/mv2r_$short" ]; then
+            remaining=$(cat "/proc/net/xt_quota/mv2r_$short" 2>/dev/null | tr -cd '0-9')
             if valid_int "$remaining" 0 1099511627776; then
               used=$(awk -v cap="$quota" -v remain="$remaining" 'BEGIN{v=cap*1048576-remain; printf "%.0f", v>0?v:0}')
               printf 'USAGE %s %s\n' "$ip" "$used"
