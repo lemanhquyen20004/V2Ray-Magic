@@ -69,12 +69,43 @@ assert.ok(service.includes('reload_config)') && service.includes('restart_xray\n
 // Do not destroy a previously-working config on an invalid node/URI import.
 const main = fs.readFileSync('webroot/main.js', 'utf8');
 assert.ok(main.includes('function writeValidatedConfig('), 'config must be preflighted');
-assert.ok(main.includes('config.v2.json') || main.includes("CONFIG_JSON + '.pending'"),
-  'must stage a candidate config before commit');
+assert.ok(main.includes("CONFIG_JSON.replace(/\\.json$/, '.pending.json')"),
+  'candidate must have a .json extension for Xray auto format recognition');
+assert.ok(!main.includes("CONFIG_JSON + '.pending'"),
+  'old .pending file extension breaks Xray automatic config parsing');
 assert.ok(main.includes("CONFIG_JSON + '.previous'"), 'last config backup is required');
-assert.ok(main.includes('run -test -c'), 'must use the real Xray config validator');
+assert.ok(main.includes('run -test -format=json -c'), 'must explicitly validate JSON with Xray');
+assert.ok(main.includes("tail -n 5 "), 'validator should surface actual Xray diagnostics');
 assert.equal((main.match(/writeValidatedConfig\(res\.config,/g) || []).length, 2,
   'normal and professional editors must both validate');
+
+// Execute the config-staging function under a controlled JS bridge (not root)
+// to catch command construction regressions without an Android test device.
+const begin = main.indexOf('function writeValidatedConfig(content, callback) {');
+const finish = main.indexOf('\nfunction saveProfiles()', begin);
+assert.ok(begin >= 0 && finish > begin, 'cannot isolate validation function');
+let staged = '';
+let rootCommand = '';
+const sandbox = {
+  CONFIG_JSON: '/data/adb/magic_v2ray/config.v2.json',
+  DATADIR: '/data/adb/magic_v2ray',
+  MODDIR: '/data/adb/modules/magic_v2ray',
+  shQuote: text => "'" + String(text).replace(/'/g, "'\\''") + "'",
+  writeFileB64: (path, content, cb) => {
+    staged = path;
+    cb('', '', 0);
+  },
+  execShell: (cmd, cb) => {
+    rootCommand = cmd;
+    cb('', '', 0);
+  }
+};
+vm.runInNewContext(main.slice(begin, finish), sandbox);
+vm.runInNewContext('writeValidatedConfig("{}", () => {});', sandbox);
+assert.equal(staged, '/data/adb/magic_v2ray/config.v2.pending.json');
+assert.match(rootCommand, /run -test -format=json -c/);
+assert.ok(rootCommand.includes("config-validation.log"), 'validator log missing');
+assert.ok(rootCommand.includes("previous config preserved"), 'error must preserve old config');
 
 // A quota must be one shared named counter regardless of traffic direction.
 assert.ok(limits.includes('-s "$ip" -m quota2 --name "$counter_name"'));
