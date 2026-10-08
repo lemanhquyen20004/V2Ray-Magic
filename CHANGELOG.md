@@ -1,5 +1,13 @@
 # V2Ray-Magic change log
 
+## v1.23.0 (2026-10-08) — optional hotspot limits
+
+- Opt-in hotspot quota using xt_quota2 and AP-only downlink shaping using tc HTB/u32.
+- Per-device controls for MiB/session and kbit/s, with kernel support warnings.
+- Reapply hotspot policies on tether-interface transitions without changing cellular interfaces.
+- Magisk update manifest (public repository required).
+- No two-way rate limiting, persistent daily quota, hardware offload verification or on-device integration test yet.
+
 ## v1.22.0 (2026-10-08) — safe networking & WebUI beta
 
 - Preflight Xray configuration before start/reload and clean failed TUN startup.
