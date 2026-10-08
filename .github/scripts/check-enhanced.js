@@ -41,13 +41,13 @@ assert.ok(limits.includes('-i "$ap" -j "$CHAIN"'), 'quota uplink AP ingress scop
 assert.ok(limits.includes('-o "$ap" -j "$CHAIN"'), 'quota downlink AP egress scope missing');
 assert.ok(limits.includes('quota2 --name'), 'per-client kernel quota support missing');
 assert.ok(limits.includes('existing qdisc owned by Android'), 'qdisc safety check missing');
-assert.ok(!/ip rule add|ip route replace|rmnet[0-9]|net\\.ipv4\\.ip_forward/.test(limits),
+assert.ok(!/ip rule add|ip route replace|rmnet[0-9]|net\.ipv4\.ip_forward/.test(limits),
   'hotspot limits must not change cellular/policy routing');
 assert.ok(html.includes('vm-limit-fields') || js.includes('vm-limit-fields'), 'per-device limit UI missing');
 
 // Validate Magisk update metadata against the source version before publish.
 const prop = fs.readFileSync('module.prop', 'utf8');
-const meta = Object.fromEntries(prop.split(/\\r?\\n/).filter(x => /^[a-zA-Z][a-zA-Z0-9_]*=/.test(x))
+const meta = Object.fromEntries(prop.split(/\r?\n/).filter(x => /^[a-zA-Z][a-zA-Z0-9_]*=/.test(x))
   .map(x => {const idx=x.indexOf('='); return [x.slice(0,idx),x.slice(idx+1)];}));
 const manifest = JSON.parse(fs.readFileSync('update.json', 'utf8'));
 assert.equal(manifest.version, meta.version, 'update manifest version must match module.prop');
