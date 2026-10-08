@@ -45,6 +45,8 @@ unzip -j -o "$ZIPFILE" "action.sh"        -d "$MODPATH" >&2 || abort "! Failed t
 unzip -j -o "$ZIPFILE" "hotspot_manager.sh" -d "$MODPATH" >&2 || abort "! Failed to extract hotspot_manager.sh"
 unzip -j -o "$ZIPFILE" "hotspot_limits.sh"  -d "$MODPATH" >&2 || abort "! Failed to extract hotspot_limits.sh"
 unzip -j -o "$ZIPFILE" "diagnostic.sh"      -d "$MODPATH" >&2 || abort "! Failed to extract diagnostic.sh"
+unzip -j -o "$ZIPFILE" "emergency.sh"       -d "$MODPATH" >&2 || abort "! Failed to extract emergency.sh"
+unzip -j -o "$ZIPFILE" "cleanup_installer.sh" -d "$MODPATH" >&2 || abort "! Failed to extract cleanup_installer.sh"
 unzip -j -o "$ZIPFILE" "bin/geoip.dat"    -d "$MODPATH/bin" >&2 || abort "! Failed to extract geoip.dat"
 unzip -j -o "$ZIPFILE" "bin/geosite.dat"  -d "$MODPATH/bin" >&2 || abort "! Failed to extract geosite.dat"
 unzip -j -o "$ZIPFILE" "module.prop"      -d "$MODPATH" >&2 || abort "! Failed to extract module.prop"
@@ -56,7 +58,7 @@ unzip -j -o "$ZIPFILE" "module.prop"      -d "$MODPATH" >&2 || abort "! Failed t
 # ---------------------------------------------------------------------------
 ui_print "- Verifying payload..."
 for f in bin/xray bin/xhuskydg_helper bin/curl bin/geoip.dat bin/geosite.dat \
-         service.sh proxy_control.sh uninstall.sh action.sh hotspot_manager.sh hotspot_limits.sh diagnostic.sh webroot/index.html webroot/enhanced.js; do
+         service.sh proxy_control.sh uninstall.sh action.sh hotspot_manager.sh hotspot_limits.sh diagnostic.sh emergency.sh cleanup_installer.sh webroot/index.html webroot/enhanced.js; do
     [ -s "$MODPATH/$f" ] || abort "! Missing or empty after extraction: $f"
 done
 
@@ -76,6 +78,8 @@ set_perm "$MODPATH/action.sh"        0 0 0755
 set_perm "$MODPATH/hotspot_manager.sh" 0 0 0755
 set_perm "$MODPATH/hotspot_limits.sh"  0 0 0755
 set_perm "$MODPATH/diagnostic.sh"      0 0 0755
+set_perm "$MODPATH/emergency.sh"       0 0 0755
+set_perm "$MODPATH/cleanup_installer.sh" 0 0 0755
 # geo databases are data, not executables
 set_perm "$MODPATH/bin/geoip.dat"    0 0 0644
 set_perm "$MODPATH/bin/geosite.dat"  0 0 0644
@@ -94,8 +98,34 @@ for f in profiles.base64 settings.base64 active_config.txt config.v2.json ip_hun
     [ -f "$DATADIR/$f" ] && set_perm "$DATADIR/$f" 0 0 0600
 done
 
+# Prefer a stable, safe first boot over restoring a broken TUN session.
+# The user must start Xray explicitly in WebUI after checking mobile/Wi-Fi.
+rm -f "$DATADIR/enabled"
+ui_print "- Safe mode: proxy auto-start disabled until you press Start."
+
+# If Magisk supplied the ORIGINAL path in Android Downloads, schedule removal
+# only after a successful install + reboot. Often ZIPFILE is a temporary copy;
+# in that case the browser's original download cannot safely be identified.
+case "$ZIPFILE" in
+    /storage/emulated/0/Download/*|/sdcard/Download/*)
+        case "${ZIPFILE##*/}" in
+            magic_v2ray-v*.zip)
+                checksum=$(sha256sum "$ZIPFILE" 2>/dev/null | awk '{print $1}')
+                if [ -n "$checksum" ]; then
+                    printf '%s\n%s\n' "$ZIPFILE" "$checksum" > "$DATADIR/installed_zip_cleanup"
+                    set_perm "$DATADIR/installed_zip_cleanup" 0 0 0600
+                    ui_print "- Installer ZIP will be removed after reboot (if hash matches)."
+                fi
+                ;;
+        esac
+        ;;
+    *)
+        ui_print "- Magisk used a staged ZIP; original Downloads file is left untouched."
+        ;;
+esac
+
 ui_print " "
-ui_print "  Magic V2Ray installed."
+ui_print "  V2Ray-Magic installed (safe mode)."
 ui_print "  Open the module's WebUI to configure."
 ui_print "  Magisk users need KsuWebUIStandalone to open it."
 ui_print " "
