@@ -135,24 +135,37 @@ function writeFileB64(path, content, callback) {
 // Validate a generated or manually edited config BEFORE replacing the active
 // file. On failure the old config remains intact; no Xray restart is attempted.
 function writeValidatedConfig(content, callback) {
-    const candidate = CONFIG_JSON + '.pending';
+    // Xray's "auto" config format is inferred from the last filename
+    // extension. The former config.v2.json.pending had extension ".pending",
+    // so Xray rejected EVERY generated config before parsing any node.
+    const candidate = CONFIG_JSON.replace(/\.json$/, '.pending.json');
     const previous = CONFIG_JSON + '.previous';
+    const validationLog = DATADIR + '/config-validation.log';
     writeFileB64(candidate, content, (_out, err, code) => {
         if (code !== 0) {
             if (callback) callback('', err || 'Unable to write configuration candidate', code || 1);
             return;
         }
-        // All locations are fixed root-owned paths. Shell arguments are quoted
-        // nevertheless; never place subscription/server text into the command.
-        const cmd = 'if ' + shQuote(MODDIR + '/bin/xray') +
-            ' run -test -c ' + shQuote(candidate) + ' >/dev/null 2>&1; then ' +
+        // Explicitly set -format=json too, so the CLI does not rely solely on
+        // filename auto-detection. No node data is interpolated into the shell.
+        // Keep the validator log root-only; expose just its last few lines if
+        // validation fails, without ever replacing the working configuration.
+        const cmd = 'umask 077; ' +
+            'if [ ! -x ' + shQuote(MODDIR + '/bin/xray') + ' ]; then ' +
+            'echo "Xray binary is missing or not executable" >&2; exit 3; fi; ' +
+            'if ' + shQuote(MODDIR + '/bin/xray') +
+            ' run -test -format=json -c ' + shQuote(candidate) +
+            ' > ' + shQuote(validationLog) + ' 2>&1; then ' +
+            'rm -f ' + shQuote(validationLog) + '; ' +
             'if [ -s ' + shQuote(CONFIG_JSON) + ' ]; then ' +
             'cp -p ' + shQuote(CONFIG_JSON) + ' ' + shQuote(previous) +
             ' || exit 4; chmod 600 ' + shQuote(previous) + '; fi; ' +
             'mv -f ' + shQuote(candidate) + ' ' + shQuote(CONFIG_JSON) +
             ' && chmod 600 ' + shQuote(CONFIG_JSON) + '; ' +
-            'else rm -f ' + shQuote(candidate) +
-            '; echo "Xray rejected the new config; previous config preserved" >&2; exit 2; fi';
+            'else echo "Xray rejected config; previous config preserved:" >&2; ' +
+            'tail -n 5 ' + shQuote(validationLog) +
+            ' | cut -c 1-160 >&2; ' +
+            'rm -f ' + shQuote(candidate) + '; exit 2; fi';
         execShell(cmd, callback || (() => {}));
     });
 }
