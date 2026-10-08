@@ -17,6 +17,90 @@
     do { v /= 1024; i++; } while (v >= 1024 && i < units.length - 1);
     return v.toFixed(v >= 100 ? 0 : 1) + ' ' + units[i];
   }
+  // Render only when dashboard is visible. Canvas chart uses real /proc
+  // counters; no fake test data or heavy charting dependencies.
+  const history = [];
+  function paintTrafficGraph(down, up, rxTotal, txTotal) {
+    const canvas = ui('vm-traffic-chart');
+    const donut = ui('vm-share-donut');
+    if (donut) {
+      const share = Math.round(100 * rxTotal / Math.max(1, rxTotal + txTotal));
+      donut.style.background = 'conic-gradient(#20decf 0 ' + share +
+        '%, #9867ff ' + share + '% 100%)';
+    }
+    if (ui('vm-chart-total')) ui('vm-chart-total').textContent = formatBytes(rxTotal + txTotal);
+    if (!canvas) return;
+    if (Number.isFinite(down) && Number.isFinite(up)) {
+      history.push({ down: Math.max(0, down), up: Math.max(0, up) });
+      while (history.length > 21) history.shift();
+    }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.max(250, Math.round(canvas.clientWidth || 600));
+    const h = 232;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const left = 14, top = 18, right = w - 12, bottom = h - 22;
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(130,174,223,.15)';
+    for (let k = 0; k <= 4; k++) {
+      const y = top + (bottom - top) * k / 4;
+      ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(right, y); ctx.stroke();
+    }
+    const max = Math.max(1024, ...history.map(p => Math.max(p.down, p.up))) * 1.25;
+    const draw = (key, color, shade) => {
+      if (!history.length) return;
+      const points = history.map((p, i) => ({
+        x: left + (right - left) * (i / 20),
+        y: bottom - (bottom - top) * p[key] / max
+      }));
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      points.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = 'round';
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 7;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.lineTo(points[points.length - 1].x, bottom);
+      ctx.lineTo(points[0].x, bottom);
+      ctx.closePath();
+      const g = ctx.createLinearGradient(0, top, 0, bottom);
+      g.addColorStop(0, shade);
+      g.addColorStop(1, 'rgba(8,29,55,0)');
+      ctx.fillStyle = g; ctx.fill();
+    };
+    draw('up', '#9867ff', 'rgba(152,103,255,.18)');
+    draw('down', '#20decf', 'rgba(32,222,207,.19)');
+    ctx.font = '11px system-ui';
+    ctx.fillStyle = '#88a8c6';
+    ctx.fillText('60s', left, h - 5);
+    ctx.textAlign = 'right';
+    ctx.fillText('Hiện tại', right, h - 5);
+    ctx.textAlign = 'left';
+  }
+
+  function rescueDirectConnection() {
+    const btn = ui('vm-direct-recovery');
+    if (btn) btn.disabled = true;
+    // Standalone emergency.sh works even when the root service FIFO is stuck.
+    const cmd = 'sh ' + shQuote('/data/adb/modules/magic_v2ray/emergency.sh');
+    execShell(cmd, (_out, err, code) => {
+      if (btn) btn.disabled = false;
+      if (code === 0) {
+        showToast('Đã gỡ rule proxy. Hãy thử 4G/Wi-Fi; nếu vẫn lỗi, tắt module và khởi động lại.', 'success');
+      } else {
+        showToast('Không tự khôi phục được: ' + (err || 'kiểm tra Magisk root'), 'error');
+      }
+      if (typeof updateStatusDisplay === 'function') updateStatusDisplay();
+    });
+  }
+
   function refreshTrafficStats() {
     if (!ui('tab-dashboard')?.classList.contains('active') || document.hidden) return;
     execShell('cat /proc/net/dev; echo __MV2R_ROUTE__; /system/bin/ip route get 8.8.8.8', (result, stderr, errno) => {
@@ -38,11 +122,15 @@
       if (lastCounters && lastCounters.name === name && now > lastCounters.now
           && rx >= lastCounters.rx && tx >= lastCounters.tx) {
         const seconds = (now - lastCounters.now) / 1000;
-        ui('vm-down-speed').textContent = formatBytes((rx - lastCounters.rx) / seconds) + '/s';
-        ui('vm-up-speed').textContent = formatBytes((tx - lastCounters.tx) / seconds) + '/s';
+        const downSpeed = (rx - lastCounters.rx) / seconds;
+        const upSpeed = (tx - lastCounters.tx) / seconds;
+        ui('vm-down-speed').textContent = formatBytes(downSpeed) + '/s';
+        ui('vm-up-speed').textContent = formatBytes(upSpeed) + '/s';
+        paintTrafficGraph(downSpeed, upSpeed, rx, tx);
       } else {
         ui('vm-down-speed').textContent = '—';
         ui('vm-up-speed').textContent = '—';
+        paintTrafficGraph(NaN, NaN, rx, tx);
       }
       lastCounters = { name, rx, tx, now };
     });
@@ -286,6 +374,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     ui('vm-game-mode')?.addEventListener('change', saveGameMode);
     ui('vm-auto-subs')?.addEventListener('change', saveAutoSubscriptionToggle);
+    ui('vm-direct-recovery')?.addEventListener('click', rescueDirectConnection);
     ui('vm-refresh-hotspot')?.addEventListener('click', refreshHotspot);
     ui('vm-check-network')?.addEventListener('click', refreshNetworkReport);
     ui('vm-restore-config')?.addEventListener('click', restorePreviousConfig);
