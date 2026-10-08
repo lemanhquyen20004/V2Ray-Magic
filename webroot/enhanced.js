@@ -79,6 +79,10 @@
     (limitsText || '').trim().split('\n').forEach(line => {
       const m = /^LIMIT\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+)\s+(\d+)$/.exec(line);
       if (m) limits.set(m[1], {quota: Number(m[2]), rate: Number(m[3])});
+      const usage = /^USAGE\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+)$/.exec(line);
+      if (usage && limits.has(usage[1])) {
+        limits.get(usage[1]).usedBytes = Number(usage[2]);
+      }
     });
     const holder = ui('vm-hotspot-clients');
     if (!holder) return;
@@ -125,6 +129,13 @@
       const fields = document.createElement('div');
       fields.className = 'vm-limit-fields';
       const rule = limits.get(ip) || {quota: 0, rate: 0};
+      if (rule.quota > 0) {
+        const usageLabel = document.createElement('small');
+        usageLabel.textContent = Number.isFinite(rule.usedBytes)
+          ? 'Đã dùng trong phiên: ' + formatBytes(rule.usedBytes) + ' / ' + rule.quota + ' MiB'
+          : 'Dung lượng đã dùng: kernel không cung cấp bộ đếm';
+        details.appendChild(usageLabel);
+      }
       [['Dung lượng (MiB / phiên)', 'set-quota', rule.quota, 1048576],
        ['Giới hạn tải xuống (kbit/s)', 'set-speed', rule.rate, 1000000]].forEach(([labelText, action, stored, max]) => {
         const label = document.createElement('label');
