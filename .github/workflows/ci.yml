@@ -61,6 +61,9 @@ jobs:
       - name: V2Ray-Magic feature integrity
         run: node .github/scripts/check-enhanced.js
 
+      - name: Box-style manager and node probe regression
+        run: node .github/scripts/check-box.js
+
       - name: i18n completeness
         run: node .github/scripts/check-i18n.js
 
