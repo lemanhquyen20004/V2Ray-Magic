@@ -6,7 +6,7 @@
 
 | Thông tin | Chi tiết |
 | --- | --- |
-| Phiên bản hiện tại | **v0.0.1** (Magisk `versionCode=169`) |
+| Phiên bản hiện tại | **v0.0.4** (Magisk `versionCode=172`) |
 | Xray-core | **v26.9.30** |
 | Chủ dự án / người bảo trì | **[lemanhquyen20004](https://github.com/lemanhquyen20004)** |
 | Nền tảng root | Magisk, KernelSU, APatch (tùy ROM/kernel) |

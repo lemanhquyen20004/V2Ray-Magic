@@ -1,5 +1,16 @@
 # V2Ray-Magic change log
 
+## v0.0.4 (2026-10-08) — fix Xray config test rejecting every node
+
+- Fix the temporary validation filename: `config.v2.json.pending` was rejected because Xray's default format detection uses the last file extension. The new candidate is `config.v2.pending.json`.
+- Call Xray with `run -test -format=json -c` to explicitly set the JSON format.
+- Capture validator diagnostics into a root-owned `config-validation.log` and display the last lines on failure instead of an opaque rejection message.
+- Do **not** overwrite the previous working configuration when an actual validation error occurs.
+- Add a simulated WebUI command-construction regression test to CI.
+- Keep module ID, user profiles and existing configurations unchanged.
+- **Device test required:** if an individual VLESS/Reality/WS/TLS node is still rejected after upgrading, inspect the specific Xray error displayed in the new toast.
+
+
 ## v0.0.3 (2026-10-08) — Xray Start freeze fix
 
 - Fix broken root control acknowledgment IDs: use the shell PID `$` in both the reply filename and FIFO command so Start/Reload no longer wait 30 seconds for a nonexistent response.

@@ -6,7 +6,7 @@
 
 | Project | Details |
 | --- | --- |
-| Current version | **v0.0.1** (Magisk `versionCode=169`) |
+| Current version | **v0.0.4** (Magisk `versionCode=172`) |
 | Xray-core | **v26.9.30** |
 | Owner / maintainer | **[lemanhquyen20004](https://github.com/lemanhquyen20004)** |
 | Android root support | Magisk, KernelSU and APatch (ROM/kernel compatibility varies) |
