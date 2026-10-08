@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Magic V2Ray Control Board</title>
+    <title>V2Ray-Magic · Control</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="enhanced.css">
 </head>
@@ -36,6 +36,7 @@
                     <div id="tab-menu" class="tab-menu-dropdown" role="menu" aria-labelledby="tab-menu-btn">
                         <button type="button" role="menuitem" class="tab-menu-item active" aria-current="page" data-tab="tab-dashboard" onclick="switchTab('tab-dashboard', event)" data-i18n="tab_dashboard">Dashboard</button>
                         <button type="button" role="menuitem" class="tab-menu-item" id="vm-hotspot-nav" data-tab="tab-hotspot" onclick="switchTab('tab-hotspot',event)">Thiết bị Hotspot</button>
+                        <button type="button" role="menuitem" class="tab-menu-item" data-tab="tab-diagnostics" onclick="switchTab('tab-diagnostics',event)">Chẩn đoán mạng</button>
                         <button type="button" role="menuitem" class="tab-menu-item" data-tab="tab-settings" onclick="switchTab('tab-settings', event)" data-i18n="tab_settings">Traffic Settings</button>
                         <button type="button" role="menuitem" class="tab-menu-item" data-tab="tab-network" onclick="switchTab('tab-network', event)" data-i18n="tab_network">Network Settings</button>
                         <button type="button" role="menuitem" class="tab-menu-item" data-tab="tab-exclude" onclick="switchTab('tab-exclude', event)" data-i18n="tab_exclude">Exclude Apps</button>
@@ -148,6 +149,16 @@
                     <div><strong>Giới hạn tốc độ và dung lượng (thử nghiệm)</strong><small>0 = không giới hạn. Dung lượng tính theo phiên, phụ thuộc xt_quota2; tốc độ chỉ áp dụng chiều tải xuống và cần hỗ trợ HTB/u32. Trên MIUI có thể không hỗ trợ. Kiểm tra bằng máy thật.</small></div>
                     <span class="vm-muted">Tự chọn</span>
                 </div>
+            </section>
+        </div>
+
+        <div id="tab-diagnostics" class="tab-content">
+            <section class="vm-list-panel">
+                <h3>Chẩn đoán mạng và Xray</h3>
+                <p class="vm-muted">Kiểm tra trạng thái TUN, đường truyền IPv4, iptables và hỗ trợ Hotspot. Chỉ đọc thông tin; không can thiệp vào kết nối 4G.</p>
+                <button type="button" id="vm-check-network" class="btn btn-primary">Kiểm tra ngay</button>
+                <pre id="vm-network-report" class="vm-network-report" role="status" aria-live="polite">Nhấn Kiểm tra ngay để xem kết quả.</pre>
+                <p class="vm-muted">Nếu gặp lỗi, bạn có thể sao chép kết quả này để gửi lại. Báo cáo không đọc các UUID, mật khẩu hay nội dung node.</p>
             </section>
         </div>
 
