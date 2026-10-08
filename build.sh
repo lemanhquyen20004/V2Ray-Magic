@@ -133,6 +133,7 @@ COMMON=(
     uninstall.sh
     action.sh
     hotspot_manager.sh
+    hotspot_limits.sh
     module.prop
     LICENSE
 )
