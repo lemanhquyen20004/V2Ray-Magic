@@ -65,11 +65,11 @@ send_cmd() {
 # command return code to a private root-only result file. A FIFO write by itself
 # does NOT mean that Xray or routing setup succeeded.
 send_cmd_sync() {
-    local path="$RUN_DIR/cmd_result.$"
+    local path="$RUN_DIR/cmd_result.$$"
     local tries=0
     local code=""
     rm -f "$path"
-    send_cmd "$1|$" || return 1
+    send_cmd "$1|$$" || return 1
     while [ "$tries" -lt 150 ]; do
         if [ -s "$path" ]; then
             code=$(cat "$path" 2>/dev/null)
