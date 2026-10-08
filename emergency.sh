@@ -33,7 +33,6 @@ for tool in "$IPT" "$IP6"; do
     drop_chain "$tool" mangle PREROUTING HOTSPOT_PREROUTING
     drop_chain "$tool" mangle FORWARD HOTSPOT_FORWARD
     drop_chain "$tool" filter FORWARD HOTSPOT_FORWARD
-    drop_rule "$tool" -I FORWARD -i "$TUN" -j ACCEPT
     drop_rule "$tool" -D FORWARD -i "$TUN" -j ACCEPT
     drop_rule "$tool" -D FORWARD -o "$TUN" -j ACCEPT
 done
