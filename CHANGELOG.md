@@ -1,5 +1,17 @@
 # V2Ray-Magic change log
 
+## v1.23.1 (2026-10-08) — public Magisk updates and fail-open patch
+
+- Public GitHub repository and verified Magisk update JSON.
+- Fix hotspot quota: both upload and download share a single named kernel counter.
+- Add real FIFO command result acknowledgement; no more false success on failed Xray start/reload.
+- Validate candidate config with Xray, retain previous config, and offer manual restore in WebUI.
+- Check policy table 100, TUN and iptables mark chain before committing to proxy routing.
+- New read-only network diagnostics for Android, plus mobile-responsive UI refinements.
+- Add device test plan for Redmi Note 8T, Android 11.
+- Limitations: per-device quota/rate depend on MIUI kernel, no persistent daily limits or verified upstream rate shaping.
+
+
 ## v1.23.0 (2026-10-08) — optional hotspot limits
 
 - Opt-in hotspot quota using xt_quota2 and AP-only downlink shaping using tc HTB/u32.

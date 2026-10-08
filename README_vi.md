@@ -82,3 +82,14 @@ Về cơ bản, bạn được tự do sử dụng, sửa đổi và phân phố
 - Tự cập nhật rule quản lý thiết bị khi Hotspot bật/tắt trong lúc Xray đang chạy.
 - File `update.json` đã được chuẩn bị cho Magisk, nhưng chỉ hoạt động sau khi chủ repo chuyển GitHub từ Private sang Public.
 - **Cần kiểm thử trên Redmi Note 8T** để xác minh không gián đoạn 4G và giới hạn hoạt động đúng.
+
+## Cập nhật V2Ray-Magic v1.23.1
+
+- Repository đã **công khai**, URL `update.json` cho Magisk đã được kiểm tra.
+- Sửa giới hạn dung lượng Hotspot: dùng chung bộ đếm tải lên và tải xuống.
+- Kiểm tra cấu hình Xray trước khi áp dụng; khi lệnh thất bại WebUI thông báo lỗi thật.
+- Trang **Chẩn đoán mạng** và nút khôi phục cấu hình Xray trước đó.
+- Từ chối bật proxy nếu TUN, mark chain hoặc bảng route quan trọng không có, để hạn chế rủi ro mất 4G.
+- Hướng dẫn thử nghiệm Redmi Note 8T ở [đây](docs/TEST_REDMINOTE8T_VI.md).
+
+**Chưa được xác nhận trên máy thực tế:** hạn mức sử dụng hằng ngày, hỗ trợ `xt_quota2`/`tc`, ping game hay sự ổn định của 4G/Hotspot trên MIUI.

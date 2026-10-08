@@ -87,4 +87,10 @@ assert.ok(diagnostic.includes('Xray binary:') && diagnostic.includes('TUN interf
 assert.ok(!/rm -rf|ip rule add|iptables -F|kill -9/.test(diagnostic),
   'read-only diagnosis must never mutate firewall or stop the radio');
 
+assert.ok(service.includes('check_proxy_route_integrity()'), 'mandatory TUN/network health verifier missing');
+assert.ok(service.includes('! check_proxy_route_integrity; then'),
+  'start must fail open if routing integrity is lost');
+assert.ok(html.includes('id="vm-restore-config"'), 'manual config recovery button missing');
+assert.ok(js.includes('async function restorePreviousConfig()'),
+  'manual config recovery function missing');
 console.log('V2Ray-Magic control acknowledgement, config rollback staging and diagnostic checks passed');

@@ -17,6 +17,16 @@ See [README_vi.md](README_vi.md) for original documentation and [CHANGELOG.md](C
 
 The repository owner must switch the repo to public via GitHub Settings → General → Danger Zone → Change repository visibility. Until public, the Magisk update manifest cannot be fetched anonymously. Once public, the update manifest at `main/update.json` can serve Magisk updates. CI builds ZIP artifacts using downloaded Xray/helper/geodata dependencies. Verify mobile data, hotspot, IPv6 and stop/uninstall behavior on an Android device before regular use.
 
+## v1.23.1 changes
+
+- Public GitHub update manifest for Magisk (Release ZIP is universal across supported ABIs).
+- A staged `config.v2.json.pending` is validated before replacing the existing configuration; `.previous` supports manual recovery.
+- The root controller now awaits the daemon's actual command result rather than assuming that writing into a FIFO means success.
+- Read-only Network Diagnostics tab and interactive restore action for on-device testing.
+- Added mandatory route/TUN/mark-chain integrity check before keeping traffic redirected.
+- Detailed **Redmi Note 8T** test checklist: [docs/TEST_REDMINOTE8T_VI.md](docs/TEST_REDMINOTE8T_VI.md).
+- **Hardware validation still required.** Kernel offload and Android Netfilter implementations vary; never rely on quota as a billing limit.
+
 ## v1.23.0 features (experimental on MIUI)
 
 - **Safe Xray controls:** preflight `xray run -test`, TUN startup rollback, and a 15-second crash watchdog that removes stale proxy routes.
