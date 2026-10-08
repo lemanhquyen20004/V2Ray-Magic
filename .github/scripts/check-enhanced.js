@@ -34,4 +34,26 @@ assert.equal(on.length, 2);
 assert.equal(on.filter(x => x.outboundTag === 'block').length, 1);
 assert.ok(on.some(x => x.port === '1234'));
 
-console.log('V2Ray-Magic UI integrity and Game Mode routing tests passed');
+// The optional limits must stay anchored to AP FORWARD only and never touch
+// kernel global forwarding, mobile interface policy routes or occupied qdiscs.
+const limits = fs.readFileSync('hotspot_limits.sh', 'utf8');
+assert.ok(limits.includes('-i "$ap" -j "$CHAIN"'), 'quota uplink AP ingress scope missing');
+assert.ok(limits.includes('-o "$ap" -j "$CHAIN"'), 'quota downlink AP egress scope missing');
+assert.ok(limits.includes('quota2 --name'), 'per-client kernel quota support missing');
+assert.ok(limits.includes('existing qdisc owned by Android'), 'qdisc safety check missing');
+assert.ok(!/ip rule add|ip route replace|rmnet[0-9]|net\\.ipv4\\.ip_forward/.test(limits),
+  'hotspot limits must not change cellular/policy routing');
+assert.ok(html.includes('vm-limit-fields') || js.includes('vm-limit-fields'), 'per-device limit UI missing');
+
+// Validate Magisk update metadata against the source version before publish.
+const prop = fs.readFileSync('module.prop', 'utf8');
+const meta = Object.fromEntries(prop.split(/\\r?\\n/).filter(x => /^[a-zA-Z][a-zA-Z0-9_]*=/.test(x))
+  .map(x => {const idx=x.indexOf('='); return [x.slice(0,idx),x.slice(idx+1)];}));
+const manifest = JSON.parse(fs.readFileSync('update.json', 'utf8'));
+assert.equal(manifest.version, meta.version, 'update manifest version must match module.prop');
+assert.equal(String(manifest.versionCode), meta.versionCode, 'update versionCode must match module.prop');
+assert.match(meta.updateJson, /^https:\/\//, 'Magisk update URL must be HTTPS');
+assert.ok(manifest.zipUrl.includes(meta.version.split(' ')[0]), 'ZIP must target this release version');
+assert.ok(manifest.zipUrl.includes('-universal.zip'), 'Magisk updater must use a cross-architecture ZIP');
+
+console.log('V2Ray-Magic dashboard, quota guards, game routing and update manifest tests passed');
