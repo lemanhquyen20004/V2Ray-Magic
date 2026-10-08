@@ -1,69 +1,85 @@
 # V2Ray-Magic
 
-**Maintainer and release owner:** [lemanhquyen20004](https://github.com/lemanhquyen20004)  
-**Current release series:** v0.0.1 (versionCode 169 for compatibility with existing Magisk installs).
+**Root-level Xray transparent proxy for Android**, with a mobile WebUI, hotspot tools and network-recovery safeguards.
 
-**Copyright:** © 2026 lemanhquyen20004 for original V2Ray-Magic modifications and contributions by this project owner. Upstream Magic V2Ray and third-party copyright remain with their respective copyright holders; this derivative stays under **GNU GPL-3.0**. See [COPYRIGHT.md](COPYRIGHT.md) and [LICENSE](LICENSE).
+[Tiếng Việt](README_vi.md) · [Releases](https://github.com/lemanhquyen20004/V2Ray-Magic/releases) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/lemanhquyen20004/V2Ray-Magic/issues)
 
+| Project | Details |
+| --- | --- |
+| Current version | **v0.0.1** (Magisk `versionCode=169`) |
+| Xray-core | **v26.9.30** |
+| Owner / maintainer | **[lemanhquyen20004](https://github.com/lemanhquyen20004)** |
+| Android root support | Magisk, KernelSU and APatch (ROM/kernel compatibility varies) |
+| CPU architectures | Android `arm64-v8a` and `x86_64` |
+| License | **GPL-3.0**; upstream copyright remains with the original authors |
 
-Fork-based maintenance of [Magic V2Ray](https://github.com/vincentng295/Magic_V2Ray) for rooted Android devices, with reliability improvements and Vietnamese notes.
+> **Beta software:** built and checked by GitHub Actions, **not yet verified on every real Android/MIUI device**. Back up your current configuration before installing.
 
-> This project is derived from Magic V2Ray by HuskyDG and vincentng295. Licensed under GPL-3.0. Work-in-progress: fixes are reviewed and tested by GitHub Actions; actual mobile data / hotspot behavior must be verified on the device before everyday use.
+## Features
 
-## Focus
+### Proxy and network
 
-- Reliable start/stop and fail-safe cleanup for Xray and TUN.
-- Correct config file paths throughout the root controller and WebUI.
-- Preserve 4G access and restore modified kernel network parameters.
-- Maintain the original WebUI, node support, and hotspot routing.
+- Transparent Xray TUN proxy with root-level routing, app exclusions, DNS/routing settings, node profiles and subscriptions.
+- Xray configuration preflight before applying node changes; previous configuration backup and manual restore from WebUI.
+- Startup rollback and process watchdog intended to prevent stale routes if Xray/TUN fails.
+- Wi-Fi/mobile-network change monitoring, optional tethered-device proxy routing and read-only network diagnostics.
+- Existing Xray configuration support includes VLESS, VMess, Trojan and other protocols/transports supported by the bundled core and configuration converter.
 
-See [README_vi.md](README_vi.md) for original documentation and [CHANGELOG.md](CHANGELOG.md) for project changes.
+### Mobile WebUI
 
-## Installation and updates
+- Vietnamese and other upstream UI languages.
+- Dashboard: current Android network-interface upload/download rates and totals. **These are interface counters, not per-node billing totals.**
+- Node testing, configuration editing, logs, latency monitoring and Game Mode toggle.
+- Manually refresh saved subscriptions; optionally refresh when opening WebUI after 24 hours. **It does not run a 24-hour background updater.**
+- Game Mode changes the built-in UDP/443 block rule; **it does not guarantee lower ping** or include dedicated PUBG/Liên Quân kernel optimizations.
 
-The repository owner must switch the repo to public via GitHub Settings → General → Danger Zone → Change repository visibility. Until public, the Magisk update manifest cannot be fetched anonymously. Once public, the update manifest at `main/update.json` can serve Magisk updates. CI builds ZIP artifacts using downloaded Xray/helper/geodata dependencies. Verify mobile data, hotspot, IPv6 and stop/uninstall behavior on an Android device before regular use.
+### Hotspot Manager — experimental
 
-## v1.23.1 changes
+- Discover clients via Android's available IPv4 neighbor/ARP information.
+- Block/unblock an identified hotspot client's **forwarded** Internet traffic by IP.
+- Optional **session data quota** via `xt_quota2` (when supported), with usage reporting where the kernel provides counters.
+- Optional **download-only speed limit** via `tc` HTB/U32 (when supported). Upload rate limiting is **not implemented**.
 
-- Public GitHub update manifest for Magisk (Release ZIP is universal across supported ABIs).
-- A staged `config.v2.json.pending` is validated before replacing the existing configuration; `.previous` supports manual recovery.
-- The root controller now awaits the daemon's actual command result rather than assuming that writing into a FIFO means success.
-- Read-only Network Diagnostics tab and interactive restore action for on-device testing.
-- Added mandatory route/TUN/mark-chain integrity check before keeping traffic redirected.
-- Detailed **Redmi Note 8T** test checklist: [docs/TEST_REDMINOTE8T_VI.md](docs/TEST_REDMINOTE8T_VI.md).
-- **Hardware validation still required.** Kernel offload and Android Netfilter implementations vary; never rely on quota as a billing limit.
+**Important limitations:** some ROMs use tethering offload, may not expose all clients or counters, or may not support `xt_quota2`/`tc`. IP addresses can be reassigned. Quotas may reset after restart or rule changes; this is **not** a reliable per-day or billing-grade limiter. Device blocking and network recovery must be tested on your phone.
 
-## v1.23.0 features (experimental on MIUI)
+## Install
 
-- **Safe Xray controls:** preflight `xray run -test`, TUN startup rollback, and a 15-second crash watchdog that removes stale proxy routes.
-- **Dashboard:** live network-interface traffic counters, rates and an opt-in game setting.
-- **Hotspot Manager:** discovers current IPv4 neighbors on AP interfaces and can block/unblock *forwarded* Internet access for an IP. Android MAC/IP reporting varies; there is no guarantee every tether client is visible.
-- **Game Mode:** stops applying only the upstream default UDP/443 blocking rule when turned on; does not change radio parameters or guarantee lower latency.
-- **Subscriptions:** user-triggered batch reload and optional catch-up reload on WebUI launch if 24 hours have elapsed. This is not a background updater.
-- **Original features remain:** Xray protocols, config editor, routing rules, DNS options and root WebUI.
+1. Root your compatible Android device with Magisk, KernelSU or APatch.
+2. **Back up** your existing `/data/adb/magic_v2ray` directory and any working proxy configuration.
+3. Open the [latest release](https://github.com/lemanhquyen20004/V2Ray-Magic/releases/latest) and download:
+   - **`arm64-v8a.zip`** for most current Android phones, including **Redmi Note 8T**.
+   - `x86_64.zip` only for an x86_64 Android device.
+   - `universal.zip` when architecture auto-selection is required (larger download).
+4. In your root manager, choose **Install from storage**, select the **release ZIP** (not GitHub's “Source code” archive), and reboot.
+5. Open the module WebUI through KernelSU/APatch or a supported WebUI host for Magisk, such as KsuWebUIStandalone.
+6. Check **mobile data with the proxy off first**, then start Xray and test Wi-Fi ↔ 4G switching and hotspot separately.
 
-### Not enabled yet
+See [the Redmi Note 8T test checklist](docs/TEST_REDMINOTE8T_VI.md) for step-by-step checks.
 
-Per-device quotas and AP-downlink shaping are now **experimental, opt-in and kernel dependent**, not proven on Redmi Note 8T/MIUI. IPv6 is controlled by the existing switch and should be tested separately. A local handset test is essential before relying on tether blocking or traffic recovery.
+> The module ID intentionally remains `magic_v2ray` so an installation can update the existing module instead of creating a duplicate.
 
-### Get the Magisk ZIP
+## Updates through Magisk
 
-On GitHub, open **Actions** to download the `magic_v2ray-arm64-v8a` artifact from a successful build, or open **Releases** after a successful release workflow. Unzip the GitHub Actions artifact first; the inner V2Ray-Magic `.zip` is the flashable Magisk module.
+The public repository hosts [`update.json`](update.json), referenced by `module.prop`. When the maintainer **publishes a Release**, updates `update.json` and increments `versionCode`, Magisk may offer an **Update** action at its next update check. Install the update and reboot; you do not need to download every new ZIP manually.
 
-The `updateJson` URL is configured but anonymous Magisk updates will work only after the repo owner changes visibility to Public. A private release URL is not accessible to Magisk. Future source changes belong to this repo; each must pass CI before building.
+- **No automatic push notification is guaranteed.** Magisk controls when it checks for updates.
+- **v0.0.1 has `versionCode=169`** so devices previously running V2Ray-Magic v1.23.1 (`versionCode=168`) can still recognize it as a newer update.
+- Editing source code alone does **not** publish an update; a new Release plus manifest update is needed.
 
-### Installation checklist
+## Troubleshooting
 
-1. Back up existing `/data/adb/magic_v2ray` configs and any active module settings.
-2. Install the `arm64-v8a` ZIP through Magisk; reboot.
-3. Test 4G with proxy **off**, then proxy **on**, then Wi-Fi ↔ 4G handovers.
-4. Check Hotspot and multiple devices before enabling IP blocking. Confirm normal connectivity after stopping Xray and rebooting.
-5. Keep a recovery path in Magisk if a ROM/kernel incompatibility appears.
+- **4G stops working:** stop Xray from WebUI, check **Network Diagnostics**, and verify Internet access. If needed, disable the module in Magisk and reboot.
+- **Xray does not start:** check the configuration and the service log; use the **Restore previous Xray configuration** button if a change caused the problem.
+- **Hotspot client not shown:** reconnect it and refresh the list; Android may not expose a current neighbor entry.
+- **Quota or speed limit ignored:** your kernel may not support `xt_quota2` or `tc`, or tethering offload may bypass counters. Do not depend on enforcement until independently tested.
+- Share diagnostic output when reporting bugs, but **remove UUIDs, subscription tokens, server passwords and other sensitive data**.
 
-### Experimental per-client limits (v1.23.0)
+[Open a GitHub issue](https://github.com/lemanhquyen20004/V2Ray-Magic/issues) for reproducible bugs.
 
-- Per-client session quota in MiB uses iptables `xt_quota2`. Unavailable kernels **do not enforce a quota** and log QUOTA_UNSUPPORTED; data counters may reset on rule reinstall/reboot. This is not a reliable per-day billing cap.
-- Optional download-only rate shaping uses `tc` HTB/U32 on the Hotspot AP interface. Upload shaping is not implemented. Unsupported or occupied qdiscs are left untouched.
-- Existing AP devices are detected via the neighbor cache, which may be empty or stale. IP policies are tied to addresses, so DHCP reassignment can change who owns an address.
-- A 15-second watchdog reconnects hotspot policies upon AP interface changes. Do not rely on it to guarantee zero unprotected packets during transitions.
-- The GitHub Actions workflow validates POSIX shell syntax, ShellCheck, JavaScript syntax/integrity and creates ARM64, x86 and universal ZIPs. **Neither radio performance nor Android networking can be proven by GitHub CI**.
+## Source, copyright and credits
+
+**V2Ray-Magic is maintained and released by [lemanhquyen20004](https://github.com/lemanhquyen20004).** © 2026 lemanhquyen20004 applies to original project-owned additions and modifications. Ownership of this repository **does not transfer copyright** in upstream code or third-party dependencies.
+
+This project derives from [Magic V2Ray](https://github.com/vincentng295/Magic_V2Ray), with credit to **HuskyDG, vincentng295 and other original contributors**, and remains distributed under the **GNU General Public License v3.0**. See [COPYRIGHT.md](COPYRIGHT.md) and [LICENSE](LICENSE).
+
+Xray-core, the TUN helper, third-party tools and routing databases retain their applicable upstream licenses.
