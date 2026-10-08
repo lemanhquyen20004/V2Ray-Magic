@@ -131,7 +131,19 @@ case "$ACTION" in
     list)
         init_file || exit 1
         while read -r ip quota rate; do
-            valid_ip "$ip" && printf 'LIMIT %s %s %s\n' "$ip" "$quota" "$rate"
+            if valid_ip "$ip"; then
+        printf 'LIMIT %s %s %s\n' "$ip" "$quota" "$rate"
+        if [ "$quota" -gt 0 ]; then
+          short=$(printf '%s\n' "$ip" | awk -F. '{printf "v%02x%02x%02x%02x",$1,$2,$3,$4}')
+          if [ -r "/proc/net/xt_quota/$short" ]; then
+            remaining=$(cat "/proc/net/xt_quota/$short" 2>/dev/null | tr -cd '0-9')
+            if valid_int "$remaining" 0 1099511627776; then
+              used=$(awk -v cap="$quota" -v remain="$remaining" 'BEGIN{v=cap*1048576-remain; printf "%.0f", v>0?v:0}')
+              printf 'USAGE %s %s\n' "$ip" "$used"
+            fi
+          fi
+        fi
+      fi
         done < "$POLICY" ;;
     apply) apply_rules ;;
     cleanup) cleanup ;;
