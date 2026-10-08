@@ -493,6 +493,7 @@ document.addEventListener('DOMContentLoaded', () => {
         applyI18n();
         updateStatusDisplay();
         renderProfiles();
+        if (typeof window.enhancedStateReady === 'function') window.enhancedStateReady();
     });
 });
  
