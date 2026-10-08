@@ -132,6 +132,7 @@ COMMON=(
     proxy_control.sh
     uninstall.sh
     action.sh
+    hotspot_manager.sh
     module.prop
     LICENSE
 )
