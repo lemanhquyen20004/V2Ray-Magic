@@ -47,6 +47,9 @@ fi
 log "stopped module processes"
 
 # Remove our tether-interface FORWARD rules before dropping the module.
+if [ -f "$MODDIR/hotspot_limits.sh" ]; then
+    sh "$MODDIR/hotspot_limits.sh" cleanup >/dev/null 2>&1 || :
+fi
 if [ -f "$MODDIR/hotspot_manager.sh" ]; then
     sh "$MODDIR/hotspot_manager.sh" cleanup >/dev/null 2>&1 || :
 fi
