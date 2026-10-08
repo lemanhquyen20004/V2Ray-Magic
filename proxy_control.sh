@@ -91,11 +91,15 @@ start_proxy() {
         echo "running"
         return 0
     fi
-    if [ ! -s "$DATADIR/config.json" ]; then
+    if [ ! -s "$DATADIR/config.v2.json" ]; then
         echo "no config" >&2
         return 1
     fi
     send_cmd_sync "start" || return 1
+    if ! get_status >/dev/null; then
+        echo "Xray did not start; see service.log" >&2
+        return 1
+    fi
     echo "started"
 }
 

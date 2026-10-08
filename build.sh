@@ -105,6 +105,22 @@ fetch_helper() {
     echo "    installed ${dest}/xhuskydg_helper (${HELPER_VERSION})"
 }
 
+# Routing databases are intentionally not stored in Git because they are
+# generated binary artifacts. Release packaging fetches them over HTTPS.
+ensure_geodata() {
+    mkdir -p bin
+    local base="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download"
+    local name
+    for name in geoip.dat geosite.dat; do
+        if [[ ! -s "bin/${name}" ]]; then
+            echo "==> fetching ${name}"
+            curl -fsSL --retry 3 --connect-timeout 20 \
+                -o "bin/${name}.part" "${base}/${name}"
+            mv "bin/${name}.part" "bin/${name}"
+        fi
+    done
+}
+
 # Files every build contains, regardless of architecture.
 COMMON=(
     META-INF
@@ -149,6 +165,8 @@ for a in "$@"; do
 done
 
 target="${args[0]:-all}"
+
+ensure_geodata
 
 case "$target" in
     arm64|all)     fetch_xray arm64-v8a; fetch_helper arm64-v8a; pack arm64-v8a bin/arm64-v8a ;;&

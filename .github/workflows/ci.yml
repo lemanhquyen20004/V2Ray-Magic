@@ -103,6 +103,7 @@ jobs:
           for f in $(grep -oE '"[a-zA-Z0-9_./*-]+"' customize.sh \
                      | tr -d '"' | grep -E '^(webroot|bin|[a-z_]+\.sh|module\.prop)' \
                      | sed 's|/\*$||' | sort -u); do
+            case "$f" in bin/geoip.dat|bin/geosite.dat|bin/arm64-v8a|bin/x86_64) continue ;; esac
             if [ ! -e "$f" ]; then echo "::error::customize.sh extracts '$f' which is not in the repo"; fail=1; fi
           done
           exit $fail
@@ -115,6 +116,12 @@ jobs:
             grep -q "\"$f\"" customize.sh || { echo "::error::$f is never extracted by customize.sh"; fail=1; }
           done
           exit $fail
+
+      - name: Verify consistent Xray config file paths
+        run: |
+          grep -Fq 'CONFIG_NAME=config.v2.json' service.sh
+          grep -Fq 'DATADIR/config.v2.json' proxy_control.sh
+          grep -Fq 'config.v2.json' webroot/vars.js
 
       - name: updateJson must be https
         run: |

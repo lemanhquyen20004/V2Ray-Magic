@@ -12,3 +12,7 @@ Fork-based maintenance of [Magic V2Ray](https://github.com/vincentng295/Magic_V2
 - Maintain the original WebUI, node support, and hotspot routing.
 
 See [README_vi.md](README_vi.md) for original documentation and [CHANGELOG.md](CHANGELOG.md) for project changes.
+
+## Installation and updates
+
+The GitHub repository is private; Magisk cannot fetch a private raw.githubusercontent.com update manifest without authentication. Auto-update is intentionally disabled for now. CI builds ZIP artifacts using downloaded Xray/helper/geodata dependencies. Verify mobile data, hotspot, IPv6 and stop/uninstall behavior on an Android device before regular use.

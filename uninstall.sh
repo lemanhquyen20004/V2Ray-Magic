@@ -36,7 +36,14 @@ for proc in xray hev-socks5-tunnel curl; do
     pkill -9 -f "$MODDIR/bin/$proc" 2>/dev/null
     pkill -9 -f "/data/adb/modules/magic_v2ray/bin/$proc" 2>/dev/null
 done
-pkill -9 -f "ip monitor route" 2>/dev/null
+# Only stop the route watcher started by this module, not another app's watcher.
+if [ -f "$STUB_DIR/run/iface_monitor_child.pid" ]; then
+    watcher=$(cat "$STUB_DIR/run/iface_monitor_child.pid" 2>/dev/null)
+    case "$watcher" in
+        *[!0-9]*|'') ;;
+        *) kill "$watcher" 2>/dev/null ;;
+    esac
+fi
 log "stopped module processes"
 
 # --- 2. iptables / ip6tables ----------------------------------------------
@@ -55,7 +62,7 @@ drop_rule() {
     while $bin "$@" 2>/dev/null; do :; done
 }
 
-for chain in XRAY_MARK HOTSPOT_PREROUTING MV2R_GATEWAY MV2R_DNS; do
+for chain in XRAY_MARK HOTSPOT_PREROUTING MV2R_GATEWAY MV2R_DNS BYPASS_VPN_UID XRAY_EXCLUDE_APP; do
     drop_chain "$iptables"  mangle OUTPUT     "$chain"
     drop_chain "$iptables"  mangle PREROUTING "$chain"
     drop_chain "$iptables"  nat    PREROUTING "$chain"
@@ -75,6 +82,8 @@ drop_rule "$iptables" -D OUTPUT -p tcp --dport "$TUN_PORT" -d "$TUN_ADDR" \
     -m owner --uid-owner 9999-2147483647 -j REJECT --reject-with tcp-reset
 drop_rule "$iptables" -D OUTPUT -p udp --dport "$TUN_PORT" -d "$TUN_ADDR" \
     -m owner --uid-owner 9999-2147483647 -j REJECT
+drop_rule "$iptables" -D OUTPUT -p tcp --dport 80 -d 127.18.0.0/16 \
+    -m owner --uid-owner 9999-2147483647 -j REJECT --reject-with tcp-reset
 
 for fam in "$iptables" "$ip6tables"; do
     drop_rule "$fam" -D FORWARD -i "$TUN_NAME" -j ACCEPT
@@ -85,7 +94,10 @@ done
 drop_rule "$ip6tables" -D FORWARD -j REJECT --reject-with icmp6-no-route
 
 # Legacy hardcoded tethering DNS redirects (pre-configurable-DNS builds).
-for net in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16; do
+for net in 10.0.0.0/8 100.64.0.0/10 127.0.0.0/8 169.254.0.0/16 \
+    172.16.0.0/12 192.0.0.0/24 192.0.2.0/24 192.88.99.0/24 \
+    192.168.0.0/16 198.51.100.0/24 203.0.113.0/24 \
+    224.0.0.0/4 240.0.0.0/4 255.255.255.255/32; do
     drop_rule "$iptables" -t nat -D PREROUTING ! -i "$TUN_NAME" -d "$net" \
         -p udp --dport 53 -j DNAT --to 1.1.1.1
 done

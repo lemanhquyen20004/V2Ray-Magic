@@ -4,5 +4,5 @@ version=v1.21 & Xray-core@v26.9.30
 versionCode=164
 author=HuskyDG @vincentng295
 description=A system-level transparent proxy routing engine using Xray-core. Manage your configurations in KSU webui!
-updateJson=https://vincentng295.github.io/magic-v2ray-site/update.json
+# Magisk auto-update is disabled until a public release/update.json is available
 debug=0

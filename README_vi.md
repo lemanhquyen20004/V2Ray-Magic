@@ -1,6 +1,8 @@
 # Magic V2Ray
 
-![screenshot_1](images/screenshot_1.jpg)
+![Magic V2Ray WebUI](https://raw.githubusercontent.com/vincentng295/Magic_V2Ray/main/images/screenshot_1.jpg)
+
+> Bản bảo trì V2Ray-Magic dựa trên dự án Magic V2Ray gốc. Các cải tiến tập trung vào độ ổn định và tính an toàn của kết nối mạng.
 
 Một công cụ quản lý proxy Internet mạnh mẽ và dễ sử dụng dành cho các thiết bị Android đã root. Dự án giúp bạn định tuyến toàn bộ lưu lượng mạng của thiết bị qua một proxy server để bảo mật kết nối, vượt tường lửa, đồng thời chia sẻ kết nối tốc độ cao này cho các thiết bị khác.
 

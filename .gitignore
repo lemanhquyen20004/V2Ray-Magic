@@ -3,3 +3,7 @@
 /bin/*/xray.version
 /bin/*/xhuskydg_helper
 /bin/*/xhuskydg_helper.version
+
+/bin/geoip.dat
+/bin/geosite.dat
+/bin/*.part

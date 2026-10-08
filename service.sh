@@ -59,6 +59,7 @@ IP_HUNT_FILE="$DATADIR/ip_hunt.list"
 # IP_HUNT_FILE: existence means enabled, content is the interface list.
 BYPASS_IFACE_FILE="$DATADIR/bypassIface.txt"
 ENABLED_FLAG="$DATADIR/enabled"
+SYSCTL_BACKUP_FILE="$RUN_DIR/sysctl.bak"
 
 # Runtime state files (tmpfs; cleared on every boot)
 PIDFILE="$RUN_DIR/xray.pid"
@@ -1131,6 +1132,31 @@ stop_latency_monitor() {
 # regression.
 # ---------------------------------------------------------------------------
 
+# Record network settings BEFORE the daemon changes them. Stop, startup failure,
+# and uninstall restore from this snapshot rather than guessing system defaults.
+save_network_sysctls() {
+    [ -s "$SYSCTL_BACKUP_FILE" ] && return 0
+    : > "$SYSCTL_BACKUP_FILE"
+    chmod 600 "$SYSCTL_BACKUP_FILE"
+    for p in /proc/sys/net/ipv4/ip_forward \
+        /proc/sys/net/ipv6/conf/all/forwarding \
+        /proc/sys/net/ipv6/conf/default/forwarding \
+        /proc/sys/net/ipv4/conf/*/rp_filter; do
+        if [ -r "$p" ]; then
+            val=$(cat "$p" 2>/dev/null)
+            [ -n "$val" ] && printf '%s %s\n' "$p" "$val" >> "$SYSCTL_BACKUP_FILE"
+        fi
+    done
+}
+
+restore_network_sysctls() {
+    [ -f "$SYSCTL_BACKUP_FILE" ] || return 0
+    while read -r p val; do
+        [ -n "$p" ] && [ -w "$p" ] && printf '%s\n' "$val" > "$p" 2>/dev/null
+    done < "$SYSCTL_BACKUP_FILE"
+    rm -f "$SYSCTL_BACKUP_FILE"
+}
+
 enable_forward() {
     echo "1" > "/proc/sys/net/ipv4/ip_forward"
     if [ "$1" = "true" ]; then
@@ -1217,10 +1243,15 @@ configure_tun_iface() {
     lock_xraytun0
     # openxtun only does TUNSETIFF; it never sets an MTU, so this has to
     # happen here (previously hev-socks5-tunnel's tunnel.yml set mtu: 8500).
-    $ip link set dev $TUN_NAME mtu 8500
-    $ip addr add 198.18.0.1/15 dev $TUN_NAME 2>/dev/null
-    $ip link set dev $TUN_NAME up
-    $ip route replace default dev $TUN_NAME table 100
+    if ! $ip link set dev "$TUN_NAME" mtu 8500; then
+        log "error: could not set TUN MTU"
+        return 1
+    fi
+    $ip addr add 198.18.0.1/15 dev "$TUN_NAME" 2>/dev/null
+    if ! $ip link set dev "$TUN_NAME" up || ! $ip route replace default dev "$TUN_NAME" table 100; then
+        log "error: could not bring up or route TUN"
+        return 1
+    fi
 
     if [ "$ipv6_enabled" = true ]; then
         $ip -6 addr add fdfe:dcba:9876::1/64 dev $TUN_NAME 2>/dev/null
@@ -1230,6 +1261,7 @@ configure_tun_iface() {
 }
 
 apply_routing_rules() {
+    save_network_sysctls
     ipv6_enabled="$(setting_is_true enableIPv6 && echo true || echo false)"
     echo "IPv6 enabled: $ipv6_enabled"
 
@@ -1671,7 +1703,16 @@ start_xray() {
     log "xray (via openxtun, tun=$TUN_NAME) started with pid $XRAY_PID"
 
     mount_proc_with_name "$XRAY_PID" "xray"
-    apply_routing_rules
+    if ! apply_routing_rules || ! is_proc_running "xray"; then
+        log "Xray/TUN startup failed; rolling back routing and sysctl state"
+        clear_routing_rules >/dev/null 2>&1
+        restore_network_sysctls
+        kill "$XRAY_PID" 2>/dev/null
+        rm -f "$PIDFILE" "$ENABLED_FLAG"
+        umount_proc_with_name "xray"
+        XRAY_PID=0
+        return 1
+    fi
     start_apps_monitor
     touch "$ENABLED_FLAG"
     return 0
@@ -1680,6 +1721,7 @@ start_xray() {
 stop_xray() {
     stop_apps_monitor
     clear_routing_rules 2>/dev/null
+    restore_network_sysctls
 
     # Kill by tracked PID, then fall back to the pid file. The fallback covers
     # the case where an earlier build lost track of the process and left it
@@ -1751,7 +1793,14 @@ restart_xray() {
     log "xray reloaded with pid $XRAY_PID (tun=$TUN_NAME re-created, iptables/ip-rule left untouched)"
 
     mount_proc_with_name "$XRAY_PID" "xray"
-    if ! configure_tun_iface; then
+    if ! configure_tun_iface || ! is_proc_running "xray"; then
+        log "Xray reload failed; clearing stale routing instead of blocking mobile data"
+        clear_routing_rules >/dev/null 2>&1
+        restore_network_sysctls
+        kill "$XRAY_PID" 2>/dev/null
+        rm -f "$PIDFILE" "$ENABLED_FLAG"
+        umount_proc_with_name "xray"
+        XRAY_PID=0
         return 1
     fi
     touch "$ENABLED_FLAG"
@@ -1776,7 +1825,7 @@ do_job() {
             ;;
         start)
             start_xray
-            return 0
+            return $?
             ;;
         stop)
             stop_xray
