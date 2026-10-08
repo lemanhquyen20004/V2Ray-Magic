@@ -108,11 +108,12 @@ case "$ACTION" in
         if [ "$ACTION" != clear ]; then
             is_client "$ip" || { echo "Hotspot client is not identifiable" >&2; exit 2; }
         fi
+        desired=$3
         set -- $(get_policy "$ip")
         quota=$1; rate=$2
         case "$ACTION" in
-            set-quota) quota=$3; valid_int "$quota" 0 1048576 || exit 2 ;;
-            set-speed) rate=$3; valid_int "$rate" 0 1000000 || exit 2 ;;
+            set-quota) quota=$desired; valid_int "$quota" 0 1048576 || exit 2 ;;
+            set-speed) rate=$desired; valid_int "$rate" 0 1000000 || exit 2 ;;
             clear) quota=0; rate=0 ;;
         esac
         save_policy "$ip" "$quota" "$rate" && apply_rules ;;
