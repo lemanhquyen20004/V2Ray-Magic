@@ -1,7 +1,7 @@
 id=magic_v2ray
-name=Magic V2Ray
-version=v1.21 & Xray-core@v26.9.30
-versionCode=164
+name=V2Ray-Magic
+version=v1.22.0 & Xray-core@v26.9.30
+versionCode=166
 author=HuskyDG @vincentng295
 description=Root Xray TUN proxy with WebUI, fail-open recovery, Hotspot Manager and Game Mode.
 # Magisk auto-update is disabled until a public release/update.json is available
