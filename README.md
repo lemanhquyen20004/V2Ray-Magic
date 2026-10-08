@@ -28,13 +28,13 @@ The repository owner must switch the repo to public via GitHub Settings → Gene
 
 ### Not enabled yet
 
-Per-device bandwidth and data quotas are **not implemented** pending validation of `tc`/Netfilter support on Redmi Note 8T/MIUI. IPv6 is controlled by the existing switch and should be tested separately. A local handset test is essential before relying on tether blocking or traffic recovery.
+Per-device quotas and AP-downlink shaping are now **experimental, opt-in and kernel dependent**, not proven on Redmi Note 8T/MIUI. IPv6 is controlled by the existing switch and should be tested separately. A local handset test is essential before relying on tether blocking or traffic recovery.
 
 ### Get the Magisk ZIP
 
 On GitHub, open **Actions** to download the `magic_v2ray-arm64-v8a` artifact from a successful build, or open **Releases** after a successful release workflow. Unzip the GitHub Actions artifact first; the inner V2Ray-Magic `.zip` is the flashable Magisk module.
 
-The repo is private, so `updateJson` has deliberately been disabled. Magisk's standard unauthenticated updater cannot fetch a private release URL. Future source changes belong to this repo; each must pass CI before building.
+The `updateJson` URL is configured but anonymous Magisk updates will work only after the repo owner changes visibility to Public. A private release URL is not accessible to Magisk. Future source changes belong to this repo; each must pass CI before building.
 
 ### Installation checklist
 
