@@ -61,12 +61,30 @@ send_cmd() {
     return 0
 }
 
-# `wait` is a no-op command used purely as a barrier: it is only consumed once
-# the loop has finished handling the command before it.
+# Requests carry this invocation's numeric PID. The service writes the actual
+# command return code to a private root-only result file. A FIFO write by itself
+# does NOT mean that Xray or routing setup succeeded.
 send_cmd_sync() {
-    send_cmd "$1" || return 1
-    send_cmd "wait" || return 1
-    return 0
+    local path="$RUN_DIR/cmd_result.$"
+    local tries=0
+    local code=""
+    rm -f "$path"
+    send_cmd "$1|$" || return 1
+    while [ "$tries" -lt 150 ]; do
+        if [ -s "$path" ]; then
+            code=$(cat "$path" 2>/dev/null)
+            rm -f "$path"
+            if [ "$code" = 0 ]; then
+                return 0
+            fi
+            echo "command '$1' failed (code ${code:-unknown}); see service.log" >&2
+            return 1
+        fi
+        sleep 0.2
+        tries=$((tries + 1))
+    done
+    echo "timeout waiting for '$1' result" >&2
+    return 1
 }
 
 # --- Commands --------------------------------------------------------------
@@ -122,13 +140,17 @@ stop_proxy() {
 # callers are expected to check `status` first.
 reload_proxy() {
     send_cmd_sync "reload_config" || return 1
+    if ! get_status >/dev/null; then
+        echo "Xray unavailable after reload; check service.log" >&2
+        return 1
+    fi
     echo "reloaded"
 }
 
 case "$1" in
     start)   start_proxy ;;
     stop)    stop_proxy ;;
-    restart) send_cmd_sync "stop" && sleep 1 && send_cmd_sync "start" && echo "restarted" ;;
+    restart) send_cmd_sync "stop" && start_proxy ;;
     reload)  reload_proxy ;;
     status)  get_status ;;
     reapply) send_cmd_sync "apply_cur_iface" ;;
