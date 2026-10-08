@@ -60,11 +60,26 @@
     if (ip && !/^(?:\d{1,3}\.){3}\d{1,3}$/.test(ip)) return;
     execShell('sh ' + shQuote(path) + ' ' + action + (ip ? ' ' + shQuote(ip) : ''), callback);
   }
+
+  function limitAction(action, ip, number, callback) {
+    if (!['set-quota', 'set-speed', 'clear', 'list'].includes(action)) return;
+    if (action !== 'list' && !/^(?:\d{1,3}\.){3}\d{1,3}$/.test(ip || '')) return;
+    if (action !== 'list' && action !== 'clear' && (!Number.isInteger(number) || number < 0 || number > 1048576)) return;
+    const cmd = 'sh ' + shQuote('/data/adb/modules/magic_v2ray/hotspot_limits.sh') + ' ' + action
+      + (ip ? ' ' + shQuote(ip) : '')
+      + (action === 'set-quota' || action === 'set-speed' ? ' ' + number : '');
+    execShell(cmd, callback);
+  }
   function showHotspotMessage(message) {
     const elem = ui('vm-hotspot-hint');
     if (elem) elem.textContent = message;
   }
-  function renderHotspot(output) {
+  function renderHotspot(output, limitsText) {
+    const limits = new Map();
+    (limitsText || '').trim().split('\n').forEach(line => {
+      const m = /^LIMIT\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+)\s+(\d+)$/.exec(line);
+      if (m) limits.set(m[1], {quota: Number(m[2]), rate: Number(m[3])});
+    });
     const holder = ui('vm-hotspot-clients');
     if (!holder) return;
     holder.replaceChildren();
@@ -105,7 +120,47 @@
           refreshHotspot();
         });
       });
+
       item.append(details, toggle);
+      const fields = document.createElement('div');
+      fields.className = 'vm-limit-fields';
+      const rule = limits.get(ip) || {quota: 0, rate: 0};
+      [['Dung lượng (MiB / phiên)', 'set-quota', rule.quota, 1048576],
+       ['Giới hạn tải xuống (kbit/s)', 'set-speed', rule.rate, 1000000]].forEach(([labelText, action, stored, max]) => {
+        const label = document.createElement('label');
+        const title = document.createElement('span');
+        title.textContent = labelText;
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.min = '0';
+        input.max = String(max);
+        input.step = '1';
+        input.value = String(stored);
+        const save = document.createElement('button');
+        save.type = 'button';
+        save.className = 'btn btn-secondary';
+        save.textContent = 'Áp dụng';
+        save.addEventListener('click', () => {
+          const value = Number(input.value);
+          if (!Number.isInteger(value) || value < 0 || value > max) {
+            showHotspotMessage('Giá trị giới hạn không hợp lệ.');
+            return;
+          }
+          save.disabled = true;
+          limitAction(action, ip, value, (out, err, code) => {
+            save.disabled = false;
+            if (code !== 0 || /UNSUPPORTED/.test(err || '')) {
+              showHotspotMessage('Giới hạn chưa được áp dụng: ' + (err || 'lỗi hoặc kernel không hỗ trợ'));
+            } else {
+              showHotspotMessage('Đã cập nhật giới hạn cho ' + ip + '.');
+            }
+            refreshHotspot();
+          });
+        });
+        label.append(title, input, save);
+        fields.appendChild(label);
+      });
+      item.appendChild(fields);
       holder.appendChild(item);
     });
   }
@@ -119,7 +174,11 @@
           showHotspotMessage('Không đọc được danh sách: ' + (err || 'hãy kiểm tra module'));
           return;
         }
-        renderHotspot(out);
+
+        limitAction('list', null, null, (limitsText, err2, code2) => {
+          renderHotspot(out, code2 === 0 ? limitsText : '');
+          if (code2 !== 0) showHotspotMessage('Không đọc được giới hạn: ' + (err2 || 'lỗi thiết bị'));
+        });
       });
     });
   }
