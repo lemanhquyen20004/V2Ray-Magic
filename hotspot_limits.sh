@@ -51,6 +51,7 @@ clear_qdisc() {
 cleanup() {
     for ap in ap0 ap1 ap2 ap3 wlan1 wlan2 wlan3 swlan0 swlan1 softap0 softap1 tether0 tether1; do
         while "$IPT" -t filter -D FORWARD -i "$ap" -j "$CHAIN" 2>/dev/null; do :; done
+        while "$IPT" -t filter -D FORWARD -o "$ap" -j "$CHAIN" 2>/dev/null; do :; done
         clear_qdisc "$ap"
     done
     "$IPT" -t filter -F "$CHAIN" 2>/dev/null || :
@@ -88,15 +89,24 @@ apply_rules() {
         valid_ip "$ip" || continue
         valid_int "$quota" 1 1048576 || continue
         bytes=$(awk -v mb="$quota" 'BEGIN{printf "%.0f", mb*1048576}')
-        name=$(printf '%s' "$ip" | tr '.' '_')
+        # Android xt_quota2 permits short names (kernel field is 15 chars).
+        # Eight hex digits preserve all four IPv4 octets without collisions.
+        name=$(printf '%s\n' "$ip" | awk -F. '{printf "v%02x%02x%02x%02x",$1,$2,$3,$4}')
         if "$IPT" -t filter -A "$CHAIN" -s "$ip" -m quota2 --name "mv2r_$name" --quota "$bytes" -j RETURN 2>/dev/null; then
             "$IPT" -t filter -A "$CHAIN" -s "$ip" -j REJECT || return 1
+            # Share the SAME named counter across uploads and downloads.
+            # Count on both AP ingress and AP egress, without affecting 4G.
+            if "$IPT" -t filter -A "$CHAIN" -d "$ip" -m quota2 --name "$name" --quota "$bytes" -j RETURN 2>/dev/null; then
+                "$IPT" -t filter -A "$CHAIN" -d "$ip" -j REJECT || return 1
+            fi
         else
             echo "QUOTA_UNSUPPORTED:$ip" >&2
         fi
     done < "$POLICY"
     "$IPT" -t filter -C FORWARD -i "$ap" -j "$CHAIN" 2>/dev/null ||
         "$IPT" -t filter -I FORWARD 1 -i "$ap" -j "$CHAIN" || return 1
+    "$IPT" -t filter -C FORWARD -o "$ap" -j "$CHAIN" 2>/dev/null ||
+        "$IPT" -t filter -I FORWARD 1 -o "$ap" -j "$CHAIN" || return 1
     shape_downlink "$ap"
     echo "APPLIED $ap"
 }
