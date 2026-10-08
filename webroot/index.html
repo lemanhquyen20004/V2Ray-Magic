@@ -12,7 +12,8 @@
         <header>
             <div class="header-top-row">
                 <div style="min-width: 0; flex: 1;">
-                    <h1>V2Ray-Magic</h1>
+                    <div class="vm-brand-eyebrow"><span class="vm-live-dot"></span> V2Ray-Magic · Control Center</div>
+                    <h1>Network Dashboard</h1>
                     <div class="status-badge" id="service-status" role="button" tabindex="0"
                          onclick="showCurrentIp()"
                          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showCurrentIp();}">Status: Checking...</div>
@@ -52,18 +53,38 @@
             <section class="control-actions header-control-actions">
                 <button class="btn btn-start" onclick="toggleService('start')" data-i18n="btn_start">Start Engine</button>
                 <button class="btn btn-stop" onclick="toggleService('stop')" data-i18n="btn_stop">Stop Engine</button>
+                <button type="button" class="btn vm-emergency-btn" id="vm-direct-recovery" aria-label="Khôi phục kết nối trực tiếp">✚ Khôi phục 4G / Wi-Fi</button>
             </section>
         </header>
 
         <div id="tab-dashboard" class="tab-content active">
             <section class="vm-overview" aria-label="Bảng điều khiển V2Ray-Magic">
-                <h3>Thống kê mạng trực tiếp</h3>
-                <p class="vm-muted">Dữ liệu từ giao diện mạng Android; không phải dung lượng riêng của từng node. Giao diện: <b id="vm-iface">—</b></p>
+                <div class="vm-overview-top">
+                    <div>
+                        <p class="vm-eyebrow">TỔNG QUAN KẾT NỐI</p>
+                        <h3>Thống kê mạng trực tiếp</h3>
+                        <p class="vm-muted">Lưu lượng của giao diện Android, không phải dữ liệu riêng của từng node.</p>
+                    </div>
+                    <span class="vm-iface-chip"><span class="vm-live-dot"></span> <span id="vm-iface">Đang kiểm tra</span></span>
+                </div>
                 <div class="vm-grid">
                     <div class="vm-metric"><span>Tốc độ tải xuống</span><strong id="vm-down-speed">—</strong></div>
                     <div class="vm-metric"><span>Tốc độ tải lên</span><strong id="vm-up-speed">—</strong></div>
                     <div class="vm-metric"><span>Đã nhận từ khi giao diện hoạt động</span><strong id="vm-down-total">—</strong></div>
                     <div class="vm-metric"><span>Đã gửi từ khi giao diện hoạt động</span><strong id="vm-up-total">—</strong></div>
+                </div>
+                <div class="vm-charts">
+                    <div class="vm-chart-panel">
+                        <div class="vm-panel-title"><div><span class="vm-eyebrow">LIVE MONITORING</span><h4>Biểu đồ tốc độ</h4></div><span class="vm-chart-legend"><i></i> Tải xuống <i></i> Tải lên</span></div>
+                        <canvas id="vm-traffic-chart" width="720" height="236" role="img" aria-label="Biểu đồ 60 giây tốc độ mạng"></canvas>
+                        <p class="vm-muted">Cập nhật khoảng mỗi 3 giây khi Dashboard đang mở.</p>
+                    </div>
+                    <div class="vm-chart-panel vm-share-panel">
+                        <div class="vm-panel-title"><div><span class="vm-eyebrow">DATA BREAKDOWN</span><h4>Tổng lưu lượng</h4></div></div>
+                        <div class="vm-donut" id="vm-share-donut"><div><strong id="vm-chart-total">—</strong><small>Dữ liệu mạng</small></div></div>
+                        <div class="vm-donut-legend"><span><i></i> Nhận</span><span><i></i> Gửi</span></div>
+                        <p class="vm-muted">Bộ đếm giao diện mạng kể từ khi được hệ thống khởi tạo.</p>
+                    </div>
                 </div>
                 <div class="vm-profile">
                     <label for="vm-game-mode"><strong>Game Mode · UDP/QUIC</strong><small>Khi bật, bỏ quy tắc chặn UDP 443 mặc định trong cấu hình Xray. Không can thiệp driver hay cam kết ping cố định.</small></label>
