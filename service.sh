@@ -1681,6 +1681,17 @@ clear_routing_rules() {
 # 8. Command loop
 # ===========================================================================
 
+# Verify that root routing was genuinely installed before leaving mobile
+# traffic pointed at Xray. ROM-specific Netfilter failures must fail open.
+check_proxy_route_integrity() {
+    $ip link show "$TUN_NAME" >/dev/null 2>&1 || return 1
+    $ip route show table 100 2>/dev/null | grep -Fq "$TUN_NAME" || return 1
+    $ip rule show 2>/dev/null | grep -Eq '^1010:' || return 1
+    $iptables -t mangle -S XRAY_MARK >/dev/null 2>&1 || return 1
+    $iptables -t mangle -S OUTPUT 2>/dev/null | grep -Fq -- '-j XRAY_MARK' || return 1
+    return 0
+}
+
 start_xray() {
     if is_proc_running "xray"; then
         log "xray already running (pid $XRAY_PID)"
@@ -1710,7 +1721,7 @@ start_xray() {
     log "xray (via openxtun, tun=$TUN_NAME) started with pid $XRAY_PID"
 
     mount_proc_with_name "$XRAY_PID" "xray"
-    if ! apply_routing_rules || ! is_proc_running "xray"; then
+    if ! apply_routing_rules || ! is_proc_running "xray" || ! check_proxy_route_integrity; then
         log "Xray/TUN startup failed; rolling back routing and sysctl state"
         clear_routing_rules >/dev/null 2>&1
         restore_network_sysctls
