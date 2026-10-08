@@ -36,6 +36,9 @@ for tool in "$IPT" "$IP6"; do
     drop_rule "$tool" -D FORWARD -i "$TUN" -j ACCEPT
     drop_rule "$tool" -D FORWARD -o "$TUN" -j ACCEPT
 done
+# Older versions also installed individually named NAT chains.
+drop_chain "$IPT" nat PREROUTING MV2R_DNS
+drop_chain "$IPT" nat PREROUTING MV2R_GATEWAY
 drop_rule "$IPT" -t mangle -D FORWARD -o "$TUN" -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1350
 drop_rule "$IPT" -D OUTPUT -p tcp --dport 808 -d 127.17.1.3 -m owner --uid-owner 9999-2147483647 -j REJECT --reject-with tcp-reset
 drop_rule "$IPT" -D OUTPUT -p tcp --dport 80 -d 127.18.0.0/16 -m owner --uid-owner 9999-2147483647 -j REJECT --reject-with tcp-reset
