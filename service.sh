@@ -1157,15 +1157,10 @@ restore_network_sysctls() {
     rm -f "$SYSCTL_BACKUP_FILE"
 }
 
+# Android netd owns system forwarding. Do not disable IPv6 system-wide
+# when the user merely turns OFF IPv6 proxying in V2Ray-Magic.
 enable_forward() {
-    echo "1" > "/proc/sys/net/ipv4/ip_forward"
-    if [ "$1" = "true" ]; then
-        echo "1" > "/proc/sys/net/ipv6/conf/all/forwarding"
-        echo "1" > "/proc/sys/net/ipv6/conf/default/forwarding"
-    else
-        echo "0" > "/proc/sys/net/ipv6/conf/all/forwarding"
-        echo "0" > "/proc/sys/net/ipv6/conf/default/forwarding"
-    fi
+    :
 }
 
 lock_xraytun0() {
@@ -1199,15 +1194,11 @@ forward() {
 # interface that already exists, and loosen "default" too so an AP
 # interface brought up later still inherits it.
 # ---------------------------------------------------------------------------
+# Restrict reverse-path adjustment to the module's own virtual interface.
+# Do not change wlan*, rmnet*, all or default on stock MIUI kernels.
 loosen_rp_filter() {
-    sysctl -w net.ipv4.conf.all.rp_filter=2
-    sysctl -w net.ipv4.conf.default.rp_filter=2
-    for conf in /proc/sys/net/ipv4/conf/*/rp_filter; do
-        case "$conf" in
-            */lo/rp_filter|*/"$TUN_NAME"/rp_filter) continue ;;
-        esac
-        echo 2 > "$conf"
-    done
+    [ -w "/proc/sys/net/ipv4/conf/$TUN_NAME/rp_filter" ] &&
+        printf '0\n' > "/proc/sys/net/ipv4/conf/$TUN_NAME/rp_filter" 2>/dev/null || :
 }
 
 # ---------------------------------------------------------------------------
@@ -1419,10 +1410,9 @@ apply_routing_rules() {
     #   false = tethered/hotspot clients bypass the proxy entirely and use the
     #           device's normal/direct route (chain still exists but only RETURNs)
     if [ "$allow_tether" = true ]; then
-        # Force DNS redirection for tethered clients to Cloudflare DNS
-        for cidr in $LAN_BYPASS_V4; do
-            $iptables -t nat -I PREROUTING ! -i $TUN_NAME -d "$cidr" -p udp --dport 53 -j DNAT --to 1.1.1.1
-        done
+        # No global DNS hijack: the old rule applied to Wi-Fi ingress as well
+        # as tether clients and could break both Wi-Fi and cellular access.
+        # Xray's own DNS routing remains configurable in WebUI.
 
         $iptables -t mangle -A HOTSPOT_PREROUTING ! -i $TUN_NAME -p tcp -j MARK --set-xmark 1
         $iptables -t mangle -A HOTSPOT_PREROUTING ! -i $TUN_NAME -p udp -j MARK --set-xmark 1
@@ -1557,48 +1547,9 @@ apply_routing_rules() {
         $ip6tables -t mangle -A HOTSPOT_FORWARD -o $TUN_NAME -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1330
         $ip6tables -t mangle -I FORWARD 1 -j HOTSPOT_FORWARD
     else
-        # Step 1: Disable IPv6 at system level and block via routing rule
-        # (If in mode 1 or 2, we let non-managed interfaces handle IPv6 normally)
-        if [ "$network_mode" != "1" ] && [ "$network_mode" != "2" ]; then
-            $ip -6 rule add fwmark 1 unreachable priority 1010
-        fi
-
-        # Step 2: Create Mangle chain for local IPv6 output traffic (Drop all IPv6)
-        $ip6tables -t mangle -N XRAY_MARK
-        # See the IPv4 XRAY_MARK chain above for why this jump exists.
-        $ip6tables -t mangle -A XRAY_MARK -j BYPASS_VPN_UID
-        $ip6tables -t mangle -A XRAY_MARK -j XRAY_EXCLUDE_APP
-        # Allow core proxy socket bypass if fwmark is already present
-        $ip6tables -t mangle -A XRAY_MARK -m mark --mark $FWMARK -j RETURN
-        if [ "$network_mode" = "1" ]; then
-            $ip6tables -t mangle -A XRAY_MARK -o rmnet+ -j RETURN
-            $ip6tables -t mangle -A XRAY_MARK -o ccmni+ -j RETURN
-            $ip6tables -t mangle -A XRAY_MARK -o pdp+ -j RETURN
-            $ip6tables -t mangle -A XRAY_MARK -o wwan+ -j RETURN
-            # Drop all outgoing IPv6 traffic from local applications
-            $ip6tables -t mangle -A XRAY_MARK -j DROP
-        elif [ "$network_mode" = "2" ]; then
-            $ip6tables -t mangle -A XRAY_MARK -o rmnet+ -j DROP
-            $ip6tables -t mangle -A XRAY_MARK -o ccmni+ -j DROP
-            $ip6tables -t mangle -A XRAY_MARK -o pdp+ -j DROP
-            $ip6tables -t mangle -A XRAY_MARK -o wwan+ -j DROP
-            $ip6tables -t mangle -A XRAY_MARK -j RETURN
-        else
-            # Drop all outgoing IPv6 traffic from local applications
-            $ip6tables -t mangle -A XRAY_MARK -j DROP
-        fi
-        $ip6tables -t mangle -A OUTPUT -j XRAY_MARK
-
-        # Step 3: Create Mangle chain for IPv6 Hotspot/Tethering traffic (Drop all IPv6)
-        $ip6tables -t mangle -N HOTSPOT_PREROUTING
-        # Drop all incoming IPv6 traffic from connected hotspot clients
-        $ip6tables -t mangle -A HOTSPOT_PREROUTING -j DROP
-        $ip6tables -t mangle -I PREROUTING 1 -j HOTSPOT_PREROUTING
-
-        # Step 4: Reject all forwarded IPv6 traffic for Hotspot clients
-        $ip6tables -t filter -N HOTSPOT_FORWARD
-        $ip6tables -t filter -A HOTSPOT_FORWARD -j REJECT --reject-with icmp6-no-route
-        $ip6tables -t filter -I FORWARD 1 -j HOTSPOT_FORWARD
+        # Proxy IPv6 is disabled, NOT device IPv6. Android/netd handles
+        # IPv6 traffic directly. Never install system-wide DROP/REJECT rules.
+        log "IPv6 proxy disabled: leaving Android IPv6 traffic untouched"
     fi
 }
 
@@ -1722,8 +1673,9 @@ start_xray() {
 
     mount_proc_with_name "$XRAY_PID" "xray"
     if ! apply_routing_rules || ! is_proc_running "xray" || ! check_proxy_route_integrity; then
-        log "Xray/TUN startup failed; rolling back routing and sysctl state"
+        log "Xray/TUN startup failed; recovering DIRECT networking"
         clear_routing_rules >/dev/null 2>&1
+        sh "$MODDIR/emergency.sh" >/dev/null 2>&1 || :
         restore_network_sysctls
         kill "$XRAY_PID" 2>/dev/null
         rm -f "$PIDFILE" "$ENABLED_FLAG"
@@ -1744,6 +1696,7 @@ stop_xray() {
     [ -f "$MODDIR/hotspot_limits.sh" ] && sh "$MODDIR/hotspot_limits.sh" cleanup >/dev/null 2>&1 || :
     [ -f "$MODDIR/hotspot_manager.sh" ] && sh "$MODDIR/hotspot_manager.sh" cleanup >/dev/null 2>&1 || :
     clear_routing_rules 2>/dev/null
+    sh "$MODDIR/emergency.sh" >/dev/null 2>&1 || :
     restore_network_sysctls
 
     # Kill by tracked PID, then fall back to the pid file. The fallback covers
@@ -1822,8 +1775,9 @@ restart_xray() {
 
     mount_proc_with_name "$XRAY_PID" "xray"
     if ! configure_tun_iface || ! is_proc_running "xray"; then
-        log "Xray reload failed; clearing stale routing instead of blocking mobile data"
+        log "Xray reload failed; restoring DIRECT networking"
         clear_routing_rules >/dev/null 2>&1
+        sh "$MODDIR/emergency.sh" >/dev/null 2>&1 || :
         restore_network_sysctls
         kill "$XRAY_PID" 2>/dev/null
         rm -f "$PIDFILE" "$ENABLED_FLAG"
