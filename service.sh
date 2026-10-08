@@ -1723,12 +1723,14 @@ start_xray() {
     start_apps_monitor
     # Hotspot restrictions are isolated from 4G by interface-scoped FORWARD jumps.
     [ -f "$MODDIR/hotspot_manager.sh" ] && sh "$MODDIR/hotspot_manager.sh" apply >/dev/null 2>&1 || :
+    [ -f "$MODDIR/hotspot_limits.sh" ] && sh "$MODDIR/hotspot_limits.sh" apply >/dev/null 2>&1 || :
     touch "$ENABLED_FLAG"
     return 0
 }
 
 stop_xray() {
     stop_apps_monitor
+    [ -f "$MODDIR/hotspot_limits.sh" ] && sh "$MODDIR/hotspot_limits.sh" cleanup >/dev/null 2>&1 || :
     [ -f "$MODDIR/hotspot_manager.sh" ] && sh "$MODDIR/hotspot_manager.sh" cleanup >/dev/null 2>&1 || :
     clear_routing_rules 2>/dev/null
     restore_network_sysctls
