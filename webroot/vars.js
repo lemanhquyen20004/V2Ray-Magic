@@ -98,6 +98,8 @@ let advSettings = {
     allowTether: true,
     // Optional game profile only suppresses the original UDP/443 block rule.
     gameMode: false,
+    // Fetch saved subscriptions on the next WebUI launch after 24h (opt-in).
+    autoSubOnOpen: false,
     // Network tab. false (default): LAN/private/special-use destinations skip
     // Xray. true: they are sent into Xray too, except loopback (127.0.0.0/8
     // and ::1/128). Read by service.sh (setting_is_true includeLan).
