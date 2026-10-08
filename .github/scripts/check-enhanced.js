@@ -93,4 +93,25 @@ assert.ok(service.includes('! check_proxy_route_integrity; then'),
 assert.ok(html.includes('id="vm-restore-config"'), 'manual config recovery button missing');
 assert.ok(js.includes('async function restorePreviousConfig()'),
   'manual config recovery function missing');
+// Regression: v0.0.2 accidentally used a single '$' instead of '$$'.
+// The PID token then wasn't numeric, the service never acknowledged Start,
+// and a full-screen overlay made the WebUI appear frozen for ~30 seconds.
+assert.ok(control.includes('cmd_result.$$$'.slice(0, -1) + '$'), 'controller must use the shell PID');
+assert.ok(control.includes('send_cmd "$1|' + '$' + '$' + '"'),
+  'start/reload requests must carry the shell PID as a numeric reply ID');
+assert.ok(service.includes('cmd_result.$reply_id'), 'root service must acknowledge matching reply PID');
+
+const startSection = main.slice(main.indexOf('async function toggleService(action)'),
+  main.indexOf('const extractUrisFromText'));
+assert.ok(main.includes('noOverlay = false') && main.includes('if (!noOverlay) showLoading('),
+  'Start must be able to skip the global touch-blocking loader');
+assert.ok(startSection.includes('noOverlay: true'), 'start must not show full-screen overlay');
+assert.ok(!startSection.includes('proxy_control.sh reapply'),
+  'start must not reapply Netfilter rules before root service startup');
+assert.ok(startSection.includes('setTimeout(() => finish(false, true), 20000)'),
+  'UI must recover from a stuck root bridge');
+assert.ok(startSection.includes('button.disabled = false'), 'start button must be re-enabled after error');
+assert.ok(main.includes("startOnly ? 'start' : 'restart'"),
+  'normal/pro config startup must support start without forcing full restart');
+
 console.log('V2Ray-Magic control acknowledgement, config rollback staging and diagnostic checks passed');
