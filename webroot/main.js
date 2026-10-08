@@ -204,7 +204,7 @@ function resolveXrayConfigChecked(rawUri) {
 // engine only if it is already running. Used by every "settings changed"
 // path so the write/validate/restart sequence exists in exactly one place.
 function applyActiveConfig(options = {}) {
-    const { force = false, onDone } = options;
+    const { force = false, onDone, noOverlay = false, startOnly = false } = options;
     // Professional mode owns config.json outright — never regenerate it from
     // the selected node, or a settings save would silently wipe the hand
     // written config.
@@ -234,7 +234,7 @@ function applyActiveConfig(options = {}) {
         if (onDone) onDone(false);
         return;
     }
-    showLoading(t("toast_reload_xray"));
+    if (!noOverlay) showLoading(t("toast_reload_xray"));
 
     writeValidatedConfig(res.config, (_writeOut, writeErr, writeCode) => {
         if (writeCode !== 0) {
@@ -244,7 +244,7 @@ function applyActiveConfig(options = {}) {
             return;
         }
         if (force) {
-            execShell(`sh ${MODDIR}/proxy_control.sh restart`, (_out, err, code) => {
+            execShell(`sh ${MODDIR}/proxy_control.sh ${startOnly ? 'start' : 'restart'}`, (_out, err, code) => {
                 hideLoading();
                 if (code !== 0) showToast('Khởi động Xray thất bại: ' + (err || 'xem service.log'), 'error');
                 else _markStatusPending();
@@ -396,14 +396,14 @@ async function loadCustomConfigTemplate() {
 // Writes `text` straight to config.json and reloads/restarts the engine the
 // same way applyActiveConfig() does for generated configs.
 function writeProConfigAndReload(text, options = {}) {
-    const { force = false, onDone } = options;
+    const { force = false, onDone, noOverlay = false, startOnly = false } = options;
     const res = validateCustomConfig(text);
     if (!res.ok) {
         showToast(t('toast_pro_invalid', { reason: res.error }), 'error');
         if (onDone) onDone(false);
         return;
     }
-    showLoading(t("toast_reload_xray"));
+    if (!noOverlay) showLoading(t("toast_reload_xray"));
     writeValidatedConfig(res.config, (_writeOut, writeErr, writeCode) => {
         if (writeCode !== 0) {
             hideLoading();
@@ -412,7 +412,7 @@ function writeProConfigAndReload(text, options = {}) {
             return;
         }
         if (force) {
-            execShell(`sh ${MODDIR}/proxy_control.sh restart`, (_out, err, code) => {
+            execShell(`sh ${MODDIR}/proxy_control.sh ${startOnly ? 'start' : 'restart'}`, (_out, err, code) => {
                 hideLoading();
                 if (code !== 0) showToast('Khởi động Xray thất bại: ' + (err || 'xem service.log'), 'error');
                 if (onDone) onDone(code === 0);
@@ -654,37 +654,65 @@ const PROXY_CONTROL_ACTIONS = [
     'gateway_start', 'gateway_stop', 'gateway_status'
 ];
 
+// Starting Xray must never freeze the WebUI or block swiping.
+let _serviceStartBusy = false;
 async function toggleService(action) {
     if (action === 'start' || action === 'restart') {
+        if (_serviceStartBusy) return;
         if (advSettings.proMode) {
             const check = validateCustomConfig(customConfigText);
             if (!check.ok) {
-                showToast(t('toast_pro_invalid', { reason: check.error }), "error");
+                showToast(t('toast_pro_invalid', { reason: check.error }), 'error');
                 return;
             }
         }
-        // No `!activeConfig` guard any more: an empty selection is the
-        // built-in no-proxy node, which produces a perfectly startable
-        // router-only config.
-        showLoading(t("toast_reload_xray"));
-        // Re-apply the mark rule for the live interface first, and only start
-        // once that has actually completed — this used to be fire-and-forget,
-        // racing the engine start against the routing rule it depends on.
-        execShell(`sh ${MODDIR}/proxy_control.sh reapply`, () => {
-            applyActiveConfig({
-                force: true,
-                onDone: (ok) => { if (ok) _markStatusPending(); }
-            });
-        });
-        hideLoading();
+        _serviceStartBusy = true;
+        const button = document.querySelector('.btn-start');
+        if (button) button.disabled = true;
+        let completed = false;
+        let guard;
+        const finish = (ok, timedOut = false) => {
+            if (completed) return;
+            completed = true;
+            clearTimeout(guard);
+            _serviceStartBusy = false;
+            if (button) button.disabled = false;
+            hideLoading();
+            if (timedOut) {
+                showToast('Xray phản hồi quá lâu. Xem Chẩn đoán mạng hoặc service.log.', 'error');
+                updateStatusDisplay();
+            } else if (ok) {
+                _markStatusPending();
+            } else {
+                updateStatusDisplay();
+            }
+        };
+        guard = setTimeout(() => finish(false, true), 20000);
+        // Startup config validation and routing are already handled in
+        // start_xray(). The old reapply + restart sequence was redundant.
+        setTimeout(() => {
+            if (completed) return;
+            try {
+                applyActiveConfig({
+                    force: true,
+                    noOverlay: true,
+                    startOnly: action === 'start',
+                    onDone: ok => finish(Boolean(ok))
+                });
+            } catch (error) {
+                showToast('Không thể khởi động Xray: ' + (error.message || String(error)), 'error');
+                finish(false);
+            }
+        }, 0);
         return;
     }
     if (!PROXY_CONTROL_ACTIONS.includes(action)) {
         console.error('[toggleService] refusing unknown action:', action);
         return;
     }
-    execShell(`sh ${MODDIR}/proxy_control.sh ${action}`, () => {
-        _markStatusPending();
+    execShell(`sh ${MODDIR}/proxy_control.sh ${action}`, (_out, err, code) => {
+        if (code !== 0) showToast('Lệnh Xray thất bại: ' + (err || 'xem service.log'), 'error');
+        updateStatusDisplay();
     });
 }
 
