@@ -134,6 +134,7 @@ COMMON=(
     action.sh
     hotspot_manager.sh
     hotspot_limits.sh
+    diagnostic.sh
     module.prop
     LICENSE
 )
