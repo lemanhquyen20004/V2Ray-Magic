@@ -132,6 +132,31 @@ function writeFileB64(path, content, callback) {
     );
 }
 
+// Validate a generated or manually edited config BEFORE replacing the active
+// file. On failure the old config remains intact; no Xray restart is attempted.
+function writeValidatedConfig(content, callback) {
+    const candidate = CONFIG_JSON + '.pending';
+    const previous = CONFIG_JSON + '.previous';
+    writeFileB64(candidate, content, (_out, err, code) => {
+        if (code !== 0) {
+            if (callback) callback('', err || 'Unable to write configuration candidate', code || 1);
+            return;
+        }
+        // All locations are fixed root-owned paths. Shell arguments are quoted
+        // nevertheless; never place subscription/server text into the command.
+        const cmd = 'if ' + shQuote(MODDIR + '/bin/xray') +
+            ' run -test -c ' + shQuote(candidate) + ' >/dev/null 2>&1; then ' +
+            'if [ -s ' + shQuote(CONFIG_JSON) + ' ]; then ' +
+            'cp -p ' + shQuote(CONFIG_JSON) + ' ' + shQuote(previous) +
+            ' || exit 4; chmod 600 ' + shQuote(previous) + '; fi; ' +
+            'mv -f ' + shQuote(candidate) + ' ' + shQuote(CONFIG_JSON) +
+            ' && chmod 600 ' + shQuote(CONFIG_JSON) + '; ' +
+            'else rm -f ' + shQuote(candidate) +
+            '; echo "Xray rejected the new config; previous config preserved" >&2; exit 2; fi';
+        execShell(cmd, callback || (() => {}));
+    });
+}
+
 function saveProfiles() {
     writeFileB64(PROFILES_FILE, utoa(JSON.stringify(profiles)));
 }
@@ -211,27 +236,34 @@ function applyActiveConfig(options = {}) {
     }
     showLoading(t("toast_reload_xray"));
 
-    writeFileB64(CONFIG_JSON, res.config, () => {
+    writeValidatedConfig(res.config, (_writeOut, writeErr, writeCode) => {
+        if (writeCode !== 0) {
+            hideLoading();
+            showToast('Xray: ' + (writeErr || 'Cấu hình không hợp lệ, đã giữ bản cũ.'), 'error');
+            if (onDone) onDone(false);
+            return;
+        }
         if (force) {
-            execShell(`sh ${MODDIR}/proxy_control.sh restart`, () => {
+            execShell(`sh ${MODDIR}/proxy_control.sh restart`, (_out, err, code) => {
                 hideLoading();
-                if (onDone) onDone(true);
+                if (code !== 0) showToast('Khởi động Xray thất bại: ' + (err || 'xem service.log'), 'error');
+                else _markStatusPending();
+                if (onDone) onDone(code === 0);
             });
             return;
         }
         execShell(`sh ${MODDIR}/proxy_control.sh status`, (status) => {
             if (status === 'running') {
-                // Node/config changed but nothing that apply_routing_rules
-                // reads did — swap the xray process only, leave the
-                // iptables/policy routing rules exactly as they are.
-                execShell(`sh ${MODDIR}/proxy_control.sh reload`, () => {
+                execShell(`sh ${MODDIR}/proxy_control.sh reload`, (_out, err, code) => {
                     hideLoading();
-                    _markStatusPending();
+                    if (code !== 0) showToast('Đổi node thất bại: ' + (err || 'xem service.log'), 'error');
+                    else _markStatusPending();
+                    if (onDone) onDone(code === 0);
                 });
             } else {
                 hideLoading();
+                if (onDone) onDone(true);
             }
-            if (onDone) onDone(true);
         });
     });
 }
@@ -372,24 +404,33 @@ function writeProConfigAndReload(text, options = {}) {
         return;
     }
     showLoading(t("toast_reload_xray"));
-    writeFileB64(CONFIG_JSON, res.config, () => {
+    writeValidatedConfig(res.config, (_writeOut, writeErr, writeCode) => {
+        if (writeCode !== 0) {
+            hideLoading();
+            showToast('Xray: ' + (writeErr || 'Cấu hình không hợp lệ, đã giữ bản cũ.'), 'error');
+            if (onDone) onDone(false);
+            return;
+        }
         if (force) {
-            execShell(`sh ${MODDIR}/proxy_control.sh restart`, () => {
+            execShell(`sh ${MODDIR}/proxy_control.sh restart`, (_out, err, code) => {
                 hideLoading();
-                if (onDone) onDone(true);
+                if (code !== 0) showToast('Khởi động Xray thất bại: ' + (err || 'xem service.log'), 'error');
+                if (onDone) onDone(code === 0);
             });
             return;
         }
         execShell(`sh ${MODDIR}/proxy_control.sh status`, (status) => {
             if (status === 'running') {
-                execShell(`sh ${MODDIR}/proxy_control.sh reload`, () => {
+                execShell(`sh ${MODDIR}/proxy_control.sh reload`, (_out, err, code) => {
                     hideLoading();
-                    _markStatusPending();
+                    if (code !== 0) showToast('Nạp lại cấu hình thất bại: ' + (err || 'xem service.log'), 'error');
+                    else _markStatusPending();
+                    if (onDone) onDone(code === 0);
                 });
             } else {
                 hideLoading();
+                if (onDone) onDone(true);
             }
-            if (onDone) onDone(true);
         });
     });
 }
