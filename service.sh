@@ -1691,6 +1691,13 @@ start_xray() {
         return 1
     fi
 
+    # Validate config before routing changes; an invalid node must not
+    # silently divert all mobile data into a tunnel that cannot start.
+    if ! "$BINDIR/xray" run -test -c "$DATADIR/$CONFIG_NAME" >> "$SERVICE_LOG" 2>&1; then
+        log "Xray config validation failed, mobile routes unchanged"
+        return 1
+    fi
+
     # openxtun opens /dev/net/tun, ioctl(TUNSETIFF) into $TUN_NAME, sets
     # XRAY_TUN_FD, then execvp's into xray (same pid — exec doesn't change
     # it). xray's tun-in inbound reads that fd directly; the interface is
@@ -1714,12 +1721,15 @@ start_xray() {
         return 1
     fi
     start_apps_monitor
+    # Hotspot restrictions are isolated from 4G by interface-scoped FORWARD jumps.
+    [ -f "$MODDIR/hotspot_manager.sh" ] && sh "$MODDIR/hotspot_manager.sh" apply >/dev/null 2>&1 || :
     touch "$ENABLED_FLAG"
     return 0
 }
 
 stop_xray() {
     stop_apps_monitor
+    [ -f "$MODDIR/hotspot_manager.sh" ] && sh "$MODDIR/hotspot_manager.sh" cleanup >/dev/null 2>&1 || :
     clear_routing_rules 2>/dev/null
     restore_network_sysctls
 
@@ -1760,6 +1770,11 @@ stop_xray() {
 restart_xray() {
     if [ ! -s "$DATADIR/$CONFIG_NAME" ]; then
         log "refusing to reload: $CONFIG_NAME missing or empty"
+        return 1
+    fi
+    # IMPORTANT: never kill the running core for a broken/unsupported node.
+    if ! "$BINDIR/xray" run -test -c "$DATADIR/$CONFIG_NAME" >> "$SERVICE_LOG" 2>&1; then
+        log "new Xray config invalid; keeping old process alive"
         return 1
     fi
 
