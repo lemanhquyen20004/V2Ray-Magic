@@ -50,6 +50,12 @@ for cidr in 10.0.0.0/8 100.64.0.0/10 127.0.0.0/8 169.254.0.0/16 \
     224.0.0.0/4 240.0.0.0/4 255.255.255.255/32; do
     drop_rule "$IPT" -t nat -D PREROUTING ! -i "$TUN" -d "$cidr" -p udp --dport 53 -j DNAT --to 1.1.1.1
 done
+# The module's Xray egress bypass uses fwmark255 at pref 1000.
+# That rule must not persist after DIRECT recovery or after uninstall.
+for family in -4 -6; do
+    drop_rule "$IP" "$family" rule del fwmark 255 priority 1000
+done
+
 # Delete priorities reserved by old releases. Only V2Ray-Magic used these
 # values on supported firmware; never flush Android's global rule table.
 for family in -4 -6; do
