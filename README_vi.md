@@ -74,3 +74,11 @@ Về cơ bản, bạn được tự do sử dụng, sửa đổi và phân phố
 - **Tải ZIP:** vào Actions/Releases của repo riêng V2Ray-Magic. Vì repo riêng tư, Magisk chưa thể tự cập nhật trực tiếp qua URL công khai.
 
 **Trước khi cài:** sao lưu cấu hình, chuẩn bị khả năng gỡ module trong Magisk và thử nghiệm 4G/Hotspot sau khi khởi động lại.
+
+## V2Ray-Magic v1.23.0 (bản thử nghiệm)
+
+- Giới hạn dung lượng theo phiên (MiB) cho từng IP Hotspot dùng module kernel `xt_quota2`. Nếu kernel không hỗ trợ, giới hạn không áp dụng. Bộ đếm có thể khởi tạo lại sau khi áp dụng rule hoặc khởi động lại.
+- Giới hạn tốc độ tải xuống (kbit/s) qua `tc`/HTB/u32, không giới hạn tốc độ tải lên. Nếu MIUI đã dùng qdisc riêng, module không thay thế qdisc đó.
+- Tự cập nhật rule quản lý thiết bị khi Hotspot bật/tắt trong lúc Xray đang chạy.
+- File `update.json` đã được chuẩn bị cho Magisk, nhưng chỉ hoạt động sau khi chủ repo chuyển GitHub từ Private sang Public.
+- **Cần kiểm thử trên Redmi Note 8T** để xác minh không gián đoạn 4G và giới hạn hoạt động đúng.
