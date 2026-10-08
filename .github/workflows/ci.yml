@@ -123,10 +123,14 @@ jobs:
           grep -Fq 'DATADIR/config.v2.json' proxy_control.sh
           grep -Fq 'config.v2.json' webroot/vars.js
 
-      - name: updateJson must be https
+      - name: Validate optional Magisk update URL
         run: |
-          grep -q '^updateJson=https://' module.prop \
-            || { echo "::error::updateJson must use https"; exit 1; }
+          if grep -q '^updateJson=' module.prop; then
+            grep -q '^updateJson=https://' module.prop \
+              || { echo "::error::updateJson must use https"; exit 1; }
+          else
+            echo "Auto-update intentionally disabled while repo is private"
+          fi
 
   build:
     name: Build & Upload Module Zips
