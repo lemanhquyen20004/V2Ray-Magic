@@ -96,7 +96,7 @@ assert.ok(js.includes('async function restorePreviousConfig()'),
 // Regression: v0.0.2 accidentally used a single '$' instead of '$$'.
 // The PID token then wasn't numeric, the service never acknowledged Start,
 // and a full-screen overlay made the WebUI appear frozen for ~30 seconds.
-assert.ok(control.includes('cmd_result.$$$'.slice(0, -1) + '$'), 'controller must use the shell PID');
+assert.ok(control.includes('local path="$RUN_DIR/cmd_result.$$"'), 'controller must use the shell PID');
 assert.ok(control.includes('send_cmd "$1|' + '$' + '$' + '"'),
   'start/reload requests must carry the shell PID as a numeric reply ID');
 assert.ok(service.includes('cmd_result.$reply_id'), 'root service must acknowledge matching reply PID');
