@@ -173,6 +173,8 @@ COMMON=(
     hotspot_manager.sh
     hotspot_limits.sh
     diagnostic.sh
+    emergency.sh
+    cleanup_installer.sh
     module.prop
     LICENSE
 )
