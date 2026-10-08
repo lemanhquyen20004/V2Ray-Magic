@@ -6,7 +6,7 @@
 
 | Thông tin | Chi tiết |
 | --- | --- |
-| Phiên bản hiện tại | **v0.0.4** (Magisk `versionCode=172`) |
+| Phiên bản hiện tại | **v0.0.5** (Magisk `versionCode=173`) |
 | Xray-core | **v26.9.30** |
 | Chủ dự án / người bảo trì | **[lemanhquyen20004](https://github.com/lemanhquyen20004)** |
 | Nền tảng root | Magisk, KernelSU, APatch (tùy ROM/kernel) |
@@ -64,6 +64,13 @@ Repo công khai có file [`update.json`](update.json), được khai báo trong 
 - **Không bảo đảm có thông báo đẩy trên thanh trạng thái.** Việc kiểm tra cập nhật phụ thuộc Magisk.
 - Phiên bản **v0.0.1** sử dụng `versionCode=169` để cao hơn bản V2Ray-Magic v1.23.1 trước đây (`versionCode=168`), giúp Magisk nhận diện bản mới.
 - Chỉ sửa mã nguồn trên GitHub **chưa đủ** để có bản cập nhật; cần Release mới và cập nhật manifest.
+
+
+### Khôi phục mạng và tự dọn file cài đặt (v0.0.5)
+
+Nếu cả 4G lẫn Wi-Fi đều mất Internet, **hãy tắt V2Ray-Magic trong Magisk rồi khởi động lại trước**. Sau khi cập nhật, WebUI có nút **Khôi phục 4G / Wi-Fi** để gỡ các rule định tuyến do module tạo. Bản mới vào chế độ mạng trực tiếp sau cài đặt, không tự bật lại Xray cũ.
+
+Giao diện đã đổi sang tông xanh đen/cyan/tím, có biểu đồ tốc độ mạng thật. Bộ cài có thể **tự xóa đúng file ZIP ở Downloads sau khi khởi động lại** chỉ khi Magisk cung cấp được đường dẫn gốc và mã SHA256 trùng khớp. Nếu Magisk dùng bản sao tạm, module không xác định được file ZIP đã tải bằng Chrome; **bạn cần xóa thủ công**, tránh xóa nhầm file.
 
 ## Khi gặp lỗi
 

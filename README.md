@@ -6,7 +6,7 @@
 
 | Project | Details |
 | --- | --- |
-| Current version | **v0.0.4** (Magisk `versionCode=172`) |
+| Current version | **v0.0.5** (Magisk `versionCode=173`) |
 | Xray-core | **v26.9.30** |
 | Owner / maintainer | **[lemanhquyen20004](https://github.com/lemanhquyen20004)** |
 | Android root support | Magisk, KernelSU and APatch (ROM/kernel compatibility varies) |
@@ -65,6 +65,13 @@ The public repository hosts [`update.json`](update.json), referenced by `module.
 - **No automatic push notification is guaranteed.** Magisk controls when it checks for updates.
 - **v0.0.1 has `versionCode=169`** so devices previously running V2Ray-Magic v1.23.1 (`versionCode=168`) can still recognize it as a newer update.
 - Editing source code alone does **not** publish an update; a new Release plus manifest update is needed.
+
+
+### Network recovery and download cleanup (v0.0.5)
+
+If both LTE and Wi-Fi stop working, **disable V2Ray-Magic in Magisk and reboot first**. After upgrading, open the WebUI and use **Khôi phục 4G / Wi-Fi** to remove the module's legacy traffic rules and return to direct routing. v0.0.5 does not automatically resume a previous proxy session after installation.
+
+The UI now has a blue/cyan/purple dashboard with network charts (actual Android network-interface counters). The installer attempts to **delete the exact downloaded ZIP after the next boot** only when Magisk passes an original path in Android's Downloads directory and the SHA256 checksum still matches. Many Magisk versions only pass a temporary ZIP path: in that case, the original file **cannot be identified safely and is not automatically deleted**. Any file you downloaded separately in Chrome may therefore require manual removal.
 
 ## Troubleshooting
 

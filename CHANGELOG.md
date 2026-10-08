@@ -1,5 +1,19 @@
 # V2Ray-Magic change log
 
+## v0.0.5 (2026-10-08) — restore LTE/Wi-Fi and redesigned dashboard
+
+- Preserve Android/netd IPv6 when V2Ray-Magic IPv6 proxy is disabled, rather than installing global IPv6 DROP/REJECT.
+- Remove unscoped tether DNS DNAT that could hijack ordinary Wi-Fi and block Internet.
+- Stop modifying cellular/Wi-Fi rp_filter and global system IPv4/IPv6 forwarding.
+- Disable the destructive Mobile IP Hunter telephony restart.
+- Add one-tap **Khôi phục 4G / Wi-Fi** with an independent emergency DIRECT rules-cleanup script; invoke it on core startup/reload failure, Stop and uninstall.
+- Fresh installs/upgrades start in **safe direct mode** (autostart disabled until explicitly reenabled through WebUI).
+- Add midnight-blue, cyan/purple glass dashboard with real live network graph, donut chart, responsive sidebar and existing proxy controls.
+- Schedule automatic installer ZIP deletion **only** when the original download path is exposed under Android Downloads and its SHA256 still matches; Magisk staging copies are not the original download.
+- Add CI regression checks for global route/DNS safety, dashboard wiring and scoped installer cleanup.
+- **Not yet tested on Redmi Note 8T**: report diagnostic output after verifying 4G and Wi-Fi with Xray disabled and enabled.
+
+
 ## v0.0.4 (2026-10-08) — fix Xray config test rejecting every node
 
 - Fix the temporary validation filename: `config.v2.json.pending` was rejected because Xray's default format detection uses the last file extension. The new candidate is `config.v2.pending.json`.
