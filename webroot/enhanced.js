@@ -150,13 +150,36 @@
     cats.slice(0, 20).forEach((cat, i) => setTimeout(() => reloadCategory(cat), i * 2500));
     showToast('Đang tải lại tối đa 20 subscription đã lưu.', 'info');
   }
-  document.addEventListener('DOMContentLoaded', () => {
-    const game = ui('vm-game-mode');
-    if (game) {
-      // Loaded asynchronously by loadState(), therefore bind after it resolves.
-      setTimeout(() => { game.checked = advSettings.gameMode === true; }, 500);
-      game.addEventListener('change', saveGameMode);
+  // Called by the original loadState callback after all saved settings are ready.
+  window.enhancedStateReady = function () {
+    if (ui('vm-game-mode')) ui('vm-game-mode').checked = advSettings.gameMode === true;
+    if (ui('vm-auto-subs')) ui('vm-auto-subs').checked = advSettings.autoSubOnOpen === true;
+    const elapsed = Date.now() - Number(advSettings.lastAutoSubCheckAt || 0);
+    if (advSettings.autoSubOnOpen === true && elapsed >= 86400000) {
+      advSettings.lastAutoSubCheckAt = Date.now();
+      writeFileB64(SETTINGS_FILE, utoa(JSON.stringify(advSettings)), (_out, err, code) => {
+        if (code === 0) reloadSavedSubscriptions();
+        else showToast('Không lưu được lịch tự cập nhật: ' + (err || 'lỗi ghi file'), 'error');
+      });
     }
+  };
+  function saveAutoSubscriptionToggle() {
+    const checked = ui('vm-auto-subs')?.checked === true;
+    const previous = advSettings.autoSubOnOpen === true;
+    advSettings.autoSubOnOpen = checked;
+    writeFileB64(SETTINGS_FILE, utoa(JSON.stringify(advSettings)), (_out, err, code) => {
+      if (code !== 0) {
+        advSettings.autoSubOnOpen = previous;
+        ui('vm-auto-subs').checked = previous;
+        showToast('Không lưu được tùy chọn cập nhật: ' + (err || 'lỗi ghi file'), 'error');
+      } else {
+        showToast(checked ? 'Sẽ kiểm tra subscription khi mở WebUI.' : 'Đã tắt tự cập nhật.', 'info');
+      }
+    });
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    ui('vm-game-mode')?.addEventListener('change', saveGameMode);
+    ui('vm-auto-subs')?.addEventListener('change', saveAutoSubscriptionToggle);
     ui('vm-refresh-hotspot')?.addEventListener('click', refreshHotspot);
     ui('vm-reload-subs')?.addEventListener('click', reloadSavedSubscriptions);
     ui('vm-hotspot-nav')?.addEventListener('click', refreshHotspot);
