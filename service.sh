@@ -1921,6 +1921,26 @@ done
 CONTROL_LOOP_PID=$!
 echo "$CONTROL_LOOP_PID" > "$RUN_DIR/control_loop.pid"
 
+# Fail-open watchdog: avoid leaving policy routing pointed at a dead TUN.
+# Low-frequency (15s) polling is deliberately used only for core liveness,
+# never for interface events. The stop command runs in the control loop so
+# routing teardown cannot race with a concurrently processed UI command.
+{
+while true; do
+    sleep 15
+    [ -f "$ENABLED_FLAG" ] || continue
+    [ -s "$PIDFILE" ] || continue
+    dying_pid=$(cat "$PIDFILE" 2>/dev/null)
+    case "$dying_pid" in ''|*[!0-9]*) continue ;; esac
+    [ -e "/proc/$dying_pid/exe" ] && continue
+    sleep 1
+    [ -f "$ENABLED_FLAG" ] || continue
+    [ "$(cat "$PIDFILE" 2>/dev/null)" = "$dying_pid" ] || continue
+    log "watchdog: Xray process $dying_pid exited; removing stale routes"
+    echo "stop" > "$PIPE_FILE"
+done
+} &
+
 # ===========================================================================
 # 9. Boot sequencer
 # ===========================================================================
