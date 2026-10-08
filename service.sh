@@ -1928,13 +1928,29 @@ echo "$CONTROL_LOOP_PID" > "$RUN_DIR/control_loop.pid"
 # never for interface events. The stop command runs in the control loop so
 # routing teardown cannot race with a concurrently processed UI command.
 {
+last_ap_interface="__boot__"
 while true; do
     sleep 15
-    [ -f "$ENABLED_FLAG" ] || continue
+    [ -f "$ENABLED_FLAG" ] || { last_ap_interface="__boot__"; continue; }
     [ -s "$PIDFILE" ] || continue
     dying_pid=$(cat "$PIDFILE" 2>/dev/null)
     case "$dying_pid" in ''|*[!0-9]*) continue ;; esac
-    [ -e "/proc/$dying_pid/exe" ] && continue
+    if [ -e "/proc/$dying_pid/exe" ]; then
+        # Tethering may be enabled AFTER Xray starts. Reapply AP-scoped rules
+        # only on AP interface transitions, not on every watchdog interval.
+        ap_interface=$(sh "$MODDIR/hotspot_manager.sh" list 2>/dev/null |
+            awk '$1=="STATUS" && $2!="NO_HOTSPOT" {print $2; exit}')
+        if [ "$ap_interface" != "$last_ap_interface" ]; then
+            sh "$MODDIR/hotspot_limits.sh" cleanup >/dev/null 2>&1 || :
+            sh "$MODDIR/hotspot_manager.sh" cleanup >/dev/null 2>&1 || :
+            if [ -n "$ap_interface" ]; then
+                sh "$MODDIR/hotspot_manager.sh" apply >/dev/null 2>&1 || :
+                sh "$MODDIR/hotspot_limits.sh" apply >/dev/null 2>&1 || :
+            fi
+            last_ap_interface=$ap_interface
+        fi
+        continue
+    fi
     sleep 1
     [ -f "$ENABLED_FLAG" ] || continue
     [ "$(cat "$PIDFILE" 2>/dev/null)" = "$dying_pid" ] || continue
