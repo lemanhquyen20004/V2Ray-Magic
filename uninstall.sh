@@ -46,6 +46,11 @@ if [ -f "$STUB_DIR/run/iface_monitor_child.pid" ]; then
 fi
 log "stopped module processes"
 
+# Ensure direct networking even when an earlier release left custom
+# IPv4/IPv6 chains installed. The recovery script does not flush Android rules.
+[ -f "$MODDIR/emergency.sh" ] &&
+    sh "$MODDIR/emergency.sh" >/dev/null 2>&1 || :
+
 # Remove our tether-interface FORWARD rules before dropping the module.
 if [ -f "$MODDIR/hotspot_limits.sh" ]; then
     sh "$MODDIR/hotspot_limits.sh" cleanup >/dev/null 2>&1 || :
