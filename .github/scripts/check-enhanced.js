@@ -145,4 +145,36 @@ assert.ok(startSection.includes('button.disabled = false'), 'start button must b
 assert.ok(main.includes("startOnly ? 'start' : 'restart'"),
   'normal/pro config startup must support start without forcing full restart');
 
+// Network safety regression guards: user reported loss of 4G AND Wi-Fi.
+const rescue = fs.readFileSync('emergency.sh', 'utf8');
+const installer = fs.readFileSync('customize.sh', 'utf8');
+const cleaner = fs.readFileSync('cleanup_installer.sh', 'utf8');
+const stylesheet = fs.readFileSync('webroot/enhanced.css', 'utf8');
+const layout = fs.readFileSync('webroot/index.html', 'utf8');
+assert.ok(rescue.includes('DIRECT_RECOVERY_COMPLETE'), 'direct recovery must be callable without Xray');
+assert.ok(!rescue.includes('iptables -F') && !rescue.includes('kill -9') && !rescue.includes('airplane_mode'),
+  'direct recovery must not reset Android global firewall or radio');
+assert.ok(!/drop_rule\s+"\$tool"\s+-I/.test(rescue), 'direct recovery must never insert iptables rules');
+assert.ok(service.includes('enable_forward() {\n    :'), 'Android, not the module, controls system forwarding');
+assert.ok(service.includes('IPv6 proxy disabled: leaving Android IPv6 traffic untouched'),
+  'turning off IPv6 proxy must not globally block IPv6');
+assert.ok(!service.includes('kill -9 "${pid_dir##*/}"'),
+  'IP hunter must not kill com.android.phone');
+assert.ok(!service.includes('$iptables -t nat -I PREROUTING ! -i $TUN_NAME'),
+  'global DNS hijacking also intercepts Wi-Fi and must remain disabled');
+assert.ok(service.includes('sh "$MODDIR/emergency.sh"'), 'network failure paths must fail open');
+assert.ok(installer.includes('rm -f "$DATADIR/enabled"'), 'new installer must start in direct-network safe mode');
+assert.ok(installer.includes('installed_zip_cleanup'), 'installer must only schedule exact-path cleanup');
+assert.ok(cleaner.includes('sha256sum') && cleaner.includes('Download/*'),
+  'ZIP cleanup must verify hash and scope to Downloads');
+assert.ok(!cleaner.includes('*.zip"') && !cleaner.includes('rm -rf'),
+  'ZIP cleanup must never delete arbitrary downloads');
+assert.ok(layout.includes('id="vm-direct-recovery"') && layout.includes('id="vm-traffic-chart"'),
+  'new dashboard and direct recovery controls missing');
+assert.ok(js.includes('rescueDirectConnection') && js.includes('paintTrafficGraph'),
+  'WebUI needs functional direct recovery and real network visualization');
+assert.ok(stylesheet.includes('min-width:1120px') && stylesheet.includes('max-width:620px'),
+  'dashboard must work on desktop and Redmi mobile screens');
+console.log('V2Ray-Magic 4G/Wi-Fi fail-open, reactive dashboard and safe ZIP cleanup checks passed');
+
 console.log('V2Ray-Magic control acknowledgement, config rollback staging and diagnostic checks passed');
