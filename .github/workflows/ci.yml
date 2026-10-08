@@ -21,7 +21,7 @@ jobs:
       # others — the class of bug that only shows up on one user's ROM.
       - name: POSIX parse check (dash)
         run: |
-          for f in service.sh proxy_control.sh uninstall.sh customize.sh action.sh hotspot_manager.sh hotspot_limits.sh diagnostic.sh emergency.sh cleanup_installer.sh; do
+          for f in service.sh proxy_control.sh uninstall.sh customize.sh action.sh hotspot_manager.sh hotspot_limits.sh diagnostic.sh emergency.sh cleanup_installer.sh v2magic.tool; do
             echo "== $f"
             dash -n "$f"
           done
@@ -29,7 +29,7 @@ jobs:
       - name: shellcheck
         run: |
           shellcheck --shell=dash --severity=warning \
-            service.sh proxy_control.sh uninstall.sh action.sh hotspot_manager.sh hotspot_limits.sh diagnostic.sh emergency.sh cleanup_installer.sh
+            service.sh proxy_control.sh v2magic.tool uninstall.sh action.sh hotspot_manager.sh hotspot_limits.sh diagnostic.sh emergency.sh cleanup_installer.sh v2magic.tool
           # customize.sh is sourced by the root manager, which predefines
           # ui_print/abort/set_perm* and $MODPATH/$ZIPFILE/$ARCH.
           shellcheck --shell=dash --severity=warning \
@@ -115,7 +115,7 @@ jobs:
         run: |
           set -e
           fail=0
-          for f in service.sh proxy_control.sh uninstall.sh action.sh hotspot_manager.sh hotspot_limits.sh diagnostic.sh emergency.sh cleanup_installer.sh module.prop; do
+          for f in service.sh proxy_control.sh v2magic.tool uninstall.sh action.sh hotspot_manager.sh hotspot_limits.sh diagnostic.sh emergency.sh cleanup_installer.sh v2magic.tool module.prop; do
             grep -q "\"$f\"" customize.sh || { echo "::error::$f is never extracted by customize.sh"; fail=1; }
           done
           exit $fail

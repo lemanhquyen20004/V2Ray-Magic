@@ -168,6 +168,7 @@ COMMON=(
     customize.sh
     service.sh
     proxy_control.sh
+    v2magic.tool
     uninstall.sh
     action.sh
     hotspot_manager.sh

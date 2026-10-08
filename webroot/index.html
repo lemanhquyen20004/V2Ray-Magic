@@ -36,6 +36,7 @@
                     </button>
                     <div id="tab-menu" class="tab-menu-dropdown" role="menu" aria-labelledby="tab-menu-btn">
                         <button type="button" role="menuitem" class="tab-menu-item active" aria-current="page" data-tab="tab-dashboard" onclick="switchTab('tab-dashboard', event)" data-i18n="tab_dashboard">Dashboard</button>
+                        <button type="button" role="menuitem" class="tab-menu-item" data-tab="tab-box" onclick="switchTab('tab-box',event)">Box Manager</button>
                         <button type="button" role="menuitem" class="tab-menu-item" id="vm-hotspot-nav" data-tab="tab-hotspot" onclick="switchTab('tab-hotspot',event)">Thiết bị Hotspot</button>
                         <button type="button" role="menuitem" class="tab-menu-item" data-tab="tab-diagnostics" onclick="switchTab('tab-diagnostics',event)">Chẩn đoán mạng</button>
                         <button type="button" role="menuitem" class="tab-menu-item" data-tab="tab-settings" onclick="switchTab('tab-settings', event)" data-i18n="tab_settings">Traffic Settings</button>
@@ -156,6 +157,43 @@
             <section class="profiles-section" id="profiles-section">
                 <h3 data-i18n="categories_title">Connection Categories</h3>
                 <div id="profiles-container"></div>
+            </section>
+        </div>
+
+        <div id="tab-box" class="tab-content">
+            <section class="vm-overview box-manager-panel">
+                <div class="vm-overview-top">
+                    <div><p class="vm-eyebrow">BOX FOR ROOT · CONTROL CENTER</p>
+                        <h3>Box Manager</h3>
+                        <p class="vm-muted">Điều khiển dịch vụ qua một script thống nhất. Chỉ Xray đã được tích hợp TUN an toàn trong bản này.</p></div>
+                    <span class="vm-iface-chip">Core <strong id="box-engine">xray</strong></span>
+                </div>
+                <div class="vm-grid">
+                    <div class="vm-metric"><span>Trạng thái</span><strong id="box-running">Đang kiểm tra</strong></div>
+                    <div class="vm-metric"><span>Định tuyến</span><strong id="box-mode">DIRECT</strong></div>
+                </div>
+                <div class="box-action-row">
+                    <button type="button" class="btn btn-primary" data-box-action="start">▶ Khởi động</button>
+                    <button type="button" class="btn btn-secondary" data-box-action="stop">■ Dừng</button>
+                    <button type="button" class="btn btn-secondary" data-box-action="restart">↻ Khởi động lại</button>
+                    <button type="button" class="btn vm-emergency-btn" data-box-action="recover">↩ Khôi phục DIRECT</button>
+                </div>
+                <p class="vm-hint" id="box-message" role="status">Hãy chọn một node trên Dashboard rồi mới khởi động core.</p>
+                <p class="vm-muted">Config đang lưu: <code id="box-config">/data/adb/magic_v2ray/config.v2.json</code></p>
+                <button type="button" class="btn btn-secondary" id="box-open-nodes">Quản lý node và subscription</button>
+            </section>
+            <section class="vm-list-panel box-manager-panel">
+                <div class="vm-panel-title"><div><p class="vm-eyebrow">KERNEL MANAGER</p><h3>Danh sách core</h3></div>
+                    <button type="button" class="btn btn-secondary" id="box-core-refresh">Làm mới</button></div>
+                <p class="vm-muted">Xray hoạt động trên TUN hiện tại. sing-box, Mihomo, V2Fly và Hysteria2 cần bộ chuyển đổi cấu hình và quản lý định tuyến riêng trước khi bật.</p>
+                <div id="box-core-list" class="box-core-list"></div>
+                <button type="button" class="btn btn-secondary" data-box-action="core check">Kiểm tra cấu hình Xray</button>
+            </section>
+            <section class="vm-list-panel box-manager-panel">
+                <div class="vm-panel-title"><div><p class="vm-eyebrow">LIVE DEBUG</p><h3>Nhật ký dịch vụ</h3></div>
+                    <button type="button" class="btn btn-secondary" id="box-view-logs">Tải log</button></div>
+                <p class="vm-muted">Log có thể chứa địa chỉ máy chủ. Không chia sẻ log khi chưa che thông tin riêng tư.</p>
+                <pre class="vm-network-report" id="box-console">Nhấn Tải log để xem.</pre>
             </section>
         </div>
 
@@ -706,6 +744,7 @@
     <script src="main.js"></script>
     <script src="excludeapps.js"></script>
     <script src="enhanced.js"></script>
+    <script src="box-ui.js"></script>
     <div id="toast-container" class="toast-container"></div>
 
     <!-- Confirm Modal (KSU webui does not support window.confirm()) -->
