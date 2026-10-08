@@ -196,6 +196,27 @@
   // Optional profile: do not disable Xray's firewall or change any OS routes.
   // Only skip the original all-UDP/443 block rule to avoid blocking game UDP/QUIC.
   // Read-only report. No proxy configuration content or server credentials.
+  // Explicit user recovery; never changes network policy or restarts Xray
+  // behind the user's back. Backups live under /data/adb (root-only).
+  async function restorePreviousConfig() {
+    const confirm = await showConfirm('Khôi phục cấu hình Xray trước đó? Cấu hình hiện tại sẽ được lưu thành config.v2.failed. Xray không tự khởi động lại.');
+    if (!confirm) return;
+    const backup = CONFIG_JSON + '.previous';
+    const failed = CONFIG_JSON + '.failed';
+    const cmd = '[ -s ' + shQuote(backup) + ' ] || { echo "Chưa có bản sao cấu hình trước." >&2; exit 2; }; ' +
+      'if [ -s ' + shQuote(CONFIG_JSON) + ' ]; then ' +
+      'cp -p ' + shQuote(CONFIG_JSON) + ' ' + shQuote(failed) + ' || exit 3; fi; ' +
+      'cp -p ' + shQuote(backup) + ' ' + shQuote(CONFIG_JSON) +
+      ' && chmod 600 ' + shQuote(CONFIG_JSON);
+    execShell(cmd, (_out, err, code) => {
+      if (code === 0) {
+        showToast('Đã khôi phục cấu hình trước. Bạn có thể khởi động lại Xray.', 'success');
+        refreshNetworkReport();
+      } else {
+        showToast('Khôi phục thất bại: ' + (err || 'không có file backup'), 'error');
+      }
+    });
+  }
   function refreshNetworkReport() {
     const output = ui('vm-network-report');
     const button = ui('vm-check-network');
@@ -267,6 +288,7 @@
     ui('vm-auto-subs')?.addEventListener('change', saveAutoSubscriptionToggle);
     ui('vm-refresh-hotspot')?.addEventListener('click', refreshHotspot);
     ui('vm-check-network')?.addEventListener('click', refreshNetworkReport);
+    ui('vm-restore-config')?.addEventListener('click', restorePreviousConfig);
     document.querySelector('[data-tab="tab-diagnostics"]')?.addEventListener('click', refreshNetworkReport);
     ui('vm-reload-subs')?.addEventListener('click', reloadSavedSubscriptions);
     ui('vm-hotspot-nav')?.addEventListener('click', refreshHotspot);
