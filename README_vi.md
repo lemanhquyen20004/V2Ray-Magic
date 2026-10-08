@@ -62,3 +62,15 @@ Dự án này được phát hành dưới giấy phép **GNU General Public Lic
 Bằng cách sử dụng dự án này, bạn đồng ý với các điều khoản và điều kiện được quy định trong giấy phép. Để biết thêm chi tiết, vui lòng xem tệp [LICENSE](LICENSE) trong kho lưu trữ này.
 
 Về cơ bản, bạn được tự do sử dụng, sửa đổi và phân phối phần mềm này, miễn là bạn giữ nguyên giấy phép và công khai mã nguồn trong dự án của chính bạn.
+
+## Bản V2Ray-Magic v1.22.0 (thử nghiệm)
+
+- **Ổn định 4G:** kiểm tra cấu hình Xray trước khi khởi động/đổi node, dọn định tuyến khi lỗi TUN/Xray.
+- **WebUI:** Dashboard tiếng Việt, thống kê tốc độ và dữ liệu trên giao diện mạng Android.
+- **Hotspot Manager:** nhận diện IP/MAC qua bảng neighbour, chặn hoặc bỏ chặn chuyển tiếp Internet theo IP của thiết bị đang phát Wi-Fi. Tính năng này cần kiểm tra trên ROM thực tế.
+- **Game Mode:** cho phép UDP/443 bằng cách bỏ *quy tắc chặn mặc định* của dự án gốc; không thể đảm bảo ping luôn dưới 60 ms.
+- **Subscription:** làm mới thủ công hàng loạt hoặc bật kiểm tra khi mở WebUI sau 24 giờ; không chạy trong nền.
+- **Chưa có:** giới hạn tốc độ và dung lượng từng thiết bị (cần thử nghiệm tc/Netfilter trên MIUI).
+- **Tải ZIP:** vào Actions/Releases của repo riêng V2Ray-Magic. Vì repo riêng tư, Magisk chưa thể tự cập nhật trực tiếp qua URL công khai.
+
+**Trước khi cài:** sao lưu cấu hình, chuẩn bị khả năng gỡ module trong Magisk và thử nghiệm 4G/Hotspot sau khi khởi động lại.
