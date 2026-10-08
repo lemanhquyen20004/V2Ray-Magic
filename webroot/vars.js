@@ -96,6 +96,8 @@ let advSettings = {
     queryStrategy: "UseIPv4",
     networkMode: 0,
     allowTether: true,
+    // Optional game profile only suppresses the original UDP/443 block rule.
+    gameMode: false,
     // Network tab. false (default): LAN/private/special-use destinations skip
     // Xray. true: they are sent into Xray too, except loopback (127.0.0.0/8
     // and ::1/128). Read by service.sh (setting_is_true includeLan).
@@ -347,7 +349,7 @@ const DNS_QUERY_STRATEGY_HINT_KEYS = {
     UseSystem: 'hint_qs_usesystem'
 };
 
-let currentLang = 'en';
+let currentLang = 'vi';
 let currentEditingCategory = null;
 let currentEditingNodeId = null;
 let currentEditingProtocol = null;
