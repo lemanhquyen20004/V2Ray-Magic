@@ -44,6 +44,7 @@ unzip -j -o "$ZIPFILE" "uninstall.sh"     -d "$MODPATH" >&2 || abort "! Failed t
 unzip -j -o "$ZIPFILE" "action.sh"        -d "$MODPATH" >&2 || abort "! Failed to extract action.sh"
 unzip -j -o "$ZIPFILE" "hotspot_manager.sh" -d "$MODPATH" >&2 || abort "! Failed to extract hotspot_manager.sh"
 unzip -j -o "$ZIPFILE" "hotspot_limits.sh"  -d "$MODPATH" >&2 || abort "! Failed to extract hotspot_limits.sh"
+unzip -j -o "$ZIPFILE" "diagnostic.sh"      -d "$MODPATH" >&2 || abort "! Failed to extract diagnostic.sh"
 unzip -j -o "$ZIPFILE" "bin/geoip.dat"    -d "$MODPATH/bin" >&2 || abort "! Failed to extract geoip.dat"
 unzip -j -o "$ZIPFILE" "bin/geosite.dat"  -d "$MODPATH/bin" >&2 || abort "! Failed to extract geosite.dat"
 unzip -j -o "$ZIPFILE" "module.prop"      -d "$MODPATH" >&2 || abort "! Failed to extract module.prop"
@@ -55,7 +56,7 @@ unzip -j -o "$ZIPFILE" "module.prop"      -d "$MODPATH" >&2 || abort "! Failed t
 # ---------------------------------------------------------------------------
 ui_print "- Verifying payload..."
 for f in bin/xray bin/xhuskydg_helper bin/curl bin/geoip.dat bin/geosite.dat \
-         service.sh proxy_control.sh uninstall.sh action.sh hotspot_manager.sh hotspot_limits.sh webroot/index.html webroot/enhanced.js; do
+         service.sh proxy_control.sh uninstall.sh action.sh hotspot_manager.sh hotspot_limits.sh diagnostic.sh webroot/index.html webroot/enhanced.js; do
     [ -s "$MODPATH/$f" ] || abort "! Missing or empty after extraction: $f"
 done
 
@@ -74,6 +75,7 @@ set_perm "$MODPATH/uninstall.sh"     0 0 0755
 set_perm "$MODPATH/action.sh"        0 0 0755
 set_perm "$MODPATH/hotspot_manager.sh" 0 0 0755
 set_perm "$MODPATH/hotspot_limits.sh"  0 0 0755
+set_perm "$MODPATH/diagnostic.sh"      0 0 0755
 # geo databases are data, not executables
 set_perm "$MODPATH/bin/geoip.dat"    0 0 0644
 set_perm "$MODPATH/bin/geosite.dat"  0 0 0644
