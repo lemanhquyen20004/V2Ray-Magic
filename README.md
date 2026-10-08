@@ -6,7 +6,7 @@
 
 | Project | Details |
 | --- | --- |
-| Current version | **v0.0.5** (Magisk `versionCode=173`) |
+| Current version | **v0.0.6** (Magisk `versionCode=174`) |
 | Xray-core | **v26.9.30** |
 | Owner / maintainer | **[lemanhquyen20004](https://github.com/lemanhquyen20004)** |
 | Android root support | Magisk, KernelSU and APatch (ROM/kernel compatibility varies) |
@@ -72,6 +72,22 @@ The public repository hosts [`update.json`](update.json), referenced by `module.
 If both LTE and Wi-Fi stop working, **disable V2Ray-Magic in Magisk and reboot first**. After upgrading, open the WebUI and use **Khôi phục 4G / Wi-Fi** to remove the module's legacy traffic rules and return to direct routing. v0.0.5 does not automatically resume a previous proxy session after installation.
 
 The UI now has a blue/cyan/purple dashboard with network charts (actual Android network-interface counters). The installer attempts to **delete the exact downloaded ZIP after the next boot** only when Magisk passes an original path in Android's Downloads directory and the SHA256 checksum still matches. Many Magisk versions only pass a temporary ZIP path: in that case, the original file **cannot be identified safely and is not automatically deleted**. Any file you downloaded separately in Chrome may therefore require manual removal.
+
+## Box-style Manager (v0.0.6)
+
+The new **Box Manager** tab provides Start / Stop / Restart / DIRECT recovery, a core inventory and service logs. It uses a common root command interface instead of scattered WebUI-specific shell snippets. The module still uses **Xray-core** for the live Android TUN to avoid shipping untested alternative engines.
+
+For rooted diagnostic shells or MT Manager scripts, the equivalent tool is:
+
+```sh
+sh /data/adb/modules/magic_v2ray/v2magic.tool status
+sh /data/adb/modules/magic_v2ray/v2magic.tool core list
+sh /data/adb/modules/magic_v2ray/v2magic.tool core check
+sh /data/adb/modules/magic_v2ray/v2magic.tool node tcp example.com 443
+sh /data/adb/modules/magic_v2ray/v2magic.tool recover
+```
+
+**TCP delay** measures the connection to a node's advertised host:port (which may be a CDN), while **HTTP delay** measures an HTTP request through an isolated Xray node. Neither directly predicts Liên Quân/PUBG ping. The current core selector intentionally rejects sing-box/Mihomo/V2Fly/Hysteria2 until a safe, tested TUN implementation is available for each core.
 
 ## Troubleshooting
 

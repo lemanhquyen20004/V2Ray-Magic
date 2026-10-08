@@ -6,7 +6,7 @@
 
 | Thông tin | Chi tiết |
 | --- | --- |
-| Phiên bản hiện tại | **v0.0.5** (Magisk `versionCode=173`) |
+| Phiên bản hiện tại | **v0.0.6** (Magisk `versionCode=174`) |
 | Xray-core | **v26.9.30** |
 | Chủ dự án / người bảo trì | **[lemanhquyen20004](https://github.com/lemanhquyen20004)** |
 | Nền tảng root | Magisk, KernelSU, APatch (tùy ROM/kernel) |
@@ -71,6 +71,23 @@ Repo công khai có file [`update.json`](update.json), được khai báo trong 
 Nếu cả 4G lẫn Wi-Fi đều mất Internet, **hãy tắt V2Ray-Magic trong Magisk rồi khởi động lại trước**. Sau khi cập nhật, WebUI có nút **Khôi phục 4G / Wi-Fi** để gỡ các rule định tuyến do module tạo. Bản mới vào chế độ mạng trực tiếp sau cài đặt, không tự bật lại Xray cũ.
 
 Giao diện đã đổi sang tông xanh đen/cyan/tím, có biểu đồ tốc độ mạng thật. Bộ cài có thể **tự xóa đúng file ZIP ở Downloads sau khi khởi động lại** chỉ khi Magisk cung cấp được đường dẫn gốc và mã SHA256 trùng khớp. Nếu Magisk dùng bản sao tạm, module không xác định được file ZIP đã tải bằng Chrome; **bạn cần xóa thủ công**, tránh xóa nhầm file.
+
+## Box Manager và kiểm tra Ping (v0.0.6)
+
+- Có thêm tab **Box Manager** để Khởi động, Dừng, Khởi động lại, **khôi phục DIRECT**, xem core đã có, kiểm tra cấu hình Xray và xem log dịch vụ.
+- Lệnh điều khiển thống nhất qua `/data/adb/modules/magic_v2ray/v2magic.tool`, dùng chung với WebUI.
+- Mỗi node có **TCP** (thời gian mở kết nối tới địa chỉ máy chủ) và **HTTP** (yêu cầu qua Xray). Đây là **hai phép đo khác nhau**; TCP 25ms không có nghĩa HTTP hoặc ping game cũng 25ms.
+- Đã giảm số tiến trình kiểm tra node song song xuống 4, bỏ màn hình phủ gây khó vuốt khi kiểm tra.
+- **An toàn 4G/Wi-Fi:** Xray vẫn là core duy nhất chạy TUN thật ở bản này. sing-box, Mihomo, V2Fly và Hysteria2 chưa được tích hợp định tuyến/TUN, nên không thể chọn để chạy. Đây là nền tảng kiểu Box, **chưa phải đa core hoàn chỉnh**.
+
+Các lệnh có thể chạy trong môi trường shell root hoặc MT Manager:
+
+```sh
+sh /data/adb/modules/magic_v2ray/v2magic.tool status
+sh /data/adb/modules/magic_v2ray/v2magic.tool core list
+sh /data/adb/modules/magic_v2ray/v2magic.tool core check
+sh /data/adb/modules/magic_v2ray/v2magic.tool recover
+```
 
 ## Khi gặp lỗi
 

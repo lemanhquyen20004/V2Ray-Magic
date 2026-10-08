@@ -1,8 +1,8 @@
 id=magic_v2ray
 name=V2Ray-Magic
-version=v0.0.5 & Xray-core@v26.9.30
-versionCode=173
+version=v0.0.6 & Xray-core@v26.9.30
+versionCode=174
 author=lemanhquyen20004
-description=Root Xray TUN proxy with WebUI, fail-open recovery, Hotspot Manager and Game Mode.
+description=Box-style root Xray manager, transparent TUN, safe DIRECT recovery, Hotspot and TCP/HTTP node tests.
 updateJson=https://raw.githubusercontent.com/lemanhquyen20004/V2Ray-Magic/main/update.json
 debug=0

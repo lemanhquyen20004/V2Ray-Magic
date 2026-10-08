@@ -1,5 +1,18 @@
 # V2Ray-Magic change log
 
+## v0.0.6 (2026-10-08) — Box-style manager foundation
+
+- Add `v2magic.tool`: a unified POSIX shell controller for start/stop/restart/status, DIRECT recovery, diagnostics, log access, Xray config check and TCP endpoint testing.
+- Add a mobile-first **Box Manager** tab for service control, installed core inventory and on-demand logs.
+- Separate **TCP endpoint delay** and **HTTP-through-Xray delay** on each node. They measure different network operations and must not be compared as identical ping measurements.
+- Reduce node test concurrency from 10 to 4 and remove blocking full-screen overlays from batch/single HTTP and IP tests to improve scrolling on older MIUI devices.
+- Preserve existing TUN/iptables implementation with **Xray as the only active core**. sing-box, Mihomo, V2Fly and Hysteria2 appear as unsupported placeholders, not launchable alternatives; avoid switching to an untested core and breaking mobile data.
+- Add CI regression tests for CLI argument validation, safe core selection, WebUI wiring and Magisk installer payload.
+- Keep the existing module ID and private profiles to support updates without reinstalling.
+
+**Pending:** full multi-core TUN backends, true per-core subscription config conversion and direct device-level 4G/Wi-Fi testing. This release does not claim those are complete.
+
+
 ## v0.0.5 (2026-10-08) — restore LTE/Wi-Fi and redesigned dashboard
 
 - Preserve Android/netd IPv6 when V2Ray-Magic IPv6 proxy is disabled, rather than installing global IPv6 DROP/REJECT.
