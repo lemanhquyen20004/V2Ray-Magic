@@ -1850,7 +1850,7 @@ do_job() {
             ;;
         reload_config)
             restart_xray
-            return 0
+            return $?
             ;;
         start_monitor)
             stop_iface_monitor
@@ -1912,10 +1912,25 @@ do_job() {
 {
 while true; do
     if read -r line < "$PIPE_FILE"; then
-        if [ -n "$line" ]; then
-            if ! do_job "$line"; then
-                log "unknown command: $line"
-            fi
+        [ -n "$line" ] || continue
+        cmd=$line
+        reply_id=""
+        case "$line" in
+            *'|'*)
+                cmd=${line%%|*}
+                reply_id=${line#*|}
+                case "$reply_id" in ''|*[!0-9]*) reply_id="" ;; esac
+                ;;
+        esac
+        if do_job "$cmd"; then
+            result=0
+        else
+            result=$?
+            log "command failed: $cmd (exit $result)"
+        fi
+        if [ -n "$reply_id" ]; then
+            printf '%s\n' "$result" > "$RUN_DIR/cmd_result.$reply_id"
+            chmod 600 "$RUN_DIR/cmd_result.$reply_id"
         fi
     fi
 done
