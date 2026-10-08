@@ -408,7 +408,7 @@ let currentEditingHostDomain = null;
 // About tab (see initAboutTab in main.js).
 // A link whose URL is empty is hidden, so SUPPORT_TELEGRAM_URL can stay ""
 // until the support group link is filled in (e.g. "https://t.me/yourgroup").
-const ABOUT_AUTHOR_GITHUB = "vincentng295";
+const ABOUT_AUTHOR_GITHUB = "lemanhquyen20004";
 const ABOUT_REPO_URL = "https://github.com/lemanhquyen20004/V2Ray-Magic";
 const ABOUT_WEBSITE_URL = "https://magicv2ray.duckdns.org/";
 const SUPPORT_TELEGRAM_URL = "";

@@ -1,5 +1,13 @@
 # V2Ray-Magic change log
 
+## v0.0.1 (2026-10-08) — new maintainer version series
+
+- Start the V2Ray-Magic version series at **v0.0.1**, owned and maintained by **lemanhquyen20004**.
+- Magisk versionCode is **169**, deliberately higher than v1.23.1's 168 to preserve automatic update detection.
+- Preserve the upstream GPL-3.0 license and the original contributors' copyright notices.
+- No routing/kernel behavior changes versus V2Ray-Magic v1.23.1.
+
+
 ## v1.23.1 (2026-10-08) — public Magisk updates and fail-open patch
 
 - Public GitHub repository and verified Magisk update JSON.

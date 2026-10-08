@@ -1,4 +1,10 @@
-# Magic V2Ray
+# V2Ray-Magic
+
+**Chủ repository và người phát hành:** [lemanhquyen20004](https://github.com/lemanhquyen20004).  
+**Phiên bản riêng bắt đầu từ:** v0.0.1.
+
+© 2026 lemanhquyen20004 đối với những phần mã và cải tiến gốc do chủ dự án tạo ra hoặc được chuyển giao hợp pháp. Mã nguồn kế thừa từ Magic V2Ray tiếp tục thuộc bản quyền của các tác giả gốc và phải tuân thủ **GPL-3.0**. Xem [COPYRIGHT.md](COPYRIGHT.md).
+
 
 ![Magic V2Ray WebUI](https://raw.githubusercontent.com/vincentng295/Magic_V2Ray/main/images/screenshot_1.jpg)
 

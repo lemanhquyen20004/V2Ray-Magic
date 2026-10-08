@@ -1,5 +1,11 @@
 # V2Ray-Magic
 
+**Maintainer and release owner:** [lemanhquyen20004](https://github.com/lemanhquyen20004)  
+**Current release series:** v0.0.1 (versionCode 169 for compatibility with existing Magisk installs).
+
+**Copyright:** © 2026 lemanhquyen20004 for original V2Ray-Magic modifications and contributions by this project owner. Upstream Magic V2Ray and third-party copyright remain with their respective copyright holders; this derivative stays under **GNU GPL-3.0**. See [COPYRIGHT.md](COPYRIGHT.md) and [LICENSE](LICENSE).
+
+
 Fork-based maintenance of [Magic V2Ray](https://github.com/vincentng295/Magic_V2Ray) for rooted Android devices, with reliability improvements and Vietnamese notes.
 
 > This project is derived from Magic V2Ray by HuskyDG and vincentng295. Licensed under GPL-3.0. Work-in-progress: fixes are reviewed and tested by GitHub Actions; actual mobile data / hotspot behavior must be verified on the device before everyday use.
