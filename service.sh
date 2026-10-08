@@ -748,7 +748,10 @@ monitor_net_interfaces() {
     cur=$(get_active_interface) || cur=""
     if [ -n "$cur" ]; then
         log "initial active interface: $cur"
-        apply_mark_rule "$cur" || cur=""
+        # Never install fwmark255 policy while the user has Xray stopped.
+        if [ -f "$ENABLED_FLAG" ] && is_proc_running "xray"; then
+            apply_mark_rule "$cur" || cur=""
+        fi
         update_vpn_bypass
         ula_apply "$cur"
     else
@@ -789,10 +792,13 @@ monitor_net_interfaces() {
         fi
 
         log "network interface changed: ${cur:-none} -> $new"
-        if apply_mark_rule "$new"; then
-            cur="$new"
-            ip_hunt_reset
+        if [ -f "$ENABLED_FLAG" ] && is_proc_running "xray"; then
+            apply_mark_rule "$new" || :
+        else
+            remove_mark_rule
         fi
+        cur="$new"
+        ip_hunt_reset
         ula_apply "$new"
         $ip addr show "$new" > "$ADDR_INFO_FILE" 2>/dev/null
         check_ip_hunter "$new"
@@ -1669,6 +1675,9 @@ start_xray() {
         XRAY_PID=0
         return 1
     fi
+    # Physical egress rule is required only while our Xray service runs.
+    physical_iface=$(get_active_interface) || physical_iface=""
+    [ -z "$physical_iface" ] || apply_mark_rule "$physical_iface"
     start_apps_monitor
     # Hotspot restrictions are isolated from 4G by interface-scoped FORWARD jumps.
     [ -f "$MODDIR/hotspot_manager.sh" ] && sh "$MODDIR/hotspot_manager.sh" apply >/dev/null 2>&1 || :
@@ -1679,6 +1688,7 @@ start_xray() {
 
 stop_xray() {
     stop_apps_monitor
+    remove_mark_rule
     [ -f "$MODDIR/hotspot_limits.sh" ] && sh "$MODDIR/hotspot_limits.sh" cleanup >/dev/null 2>&1 || :
     [ -f "$MODDIR/hotspot_manager.sh" ] && sh "$MODDIR/hotspot_manager.sh" cleanup >/dev/null 2>&1 || :
     clear_routing_rules 2>/dev/null
