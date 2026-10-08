@@ -1,0 +1,31 @@
+/* V2Ray-Magic enhancement skin — additive to upstream Material Design 3. */
+.vm-overview { margin: 0 0 18px; border: 1px solid rgba(180,160,230,.2);
+  border-radius: 22px; padding: 18px; background: linear-gradient(125deg, #242038, #171821 75%); }
+.vm-overview h3 { margin: 0 0 4px; letter-spacing: -.35px; font-size: 19px; }
+.vm-muted { color: var(--md-on-surface-variant); line-height: 1.5; font-size: 12px; }
+.vm-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin: 14px 0; }
+.vm-metric { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); 
+  border-radius: 15px; padding: 13px; min-width: 0; }
+.vm-metric span { display: block; font-size: 11px; color: #b7aec9; margin-bottom: 6px; }
+.vm-metric strong { font-size: 18px; font-variant-numeric: tabular-nums; line-height: 1.2; overflow-wrap: anywhere; }
+.vm-profile { display: flex; justify-content: space-between; gap: 14px; align-items: center;
+  padding: 13px; border-radius: 15px; border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.035); margin-top: 12px; }
+.vm-profile label { line-height: 1.5; flex: 1; }
+.vm-profile label strong { display:block; font-size: 14px; }
+.vm-profile label small { display:block; opacity:.8; font-size: 12px; }
+.vm-profile input[type=checkbox] { width: 21px; height: 21px; flex: 0 0 auto; accent-color: #d0bcff; }
+.vm-overview .btn, .vm-list-panel .btn { min-height: 36px; }
+.vm-list-panel { padding: 18px; border-radius: 19px; background: var(--md-surface-1);
+  border: 1px solid var(--md-outline-variant); }
+.vm-list-panel h3 { margin:0 0 6px; font-size:19px; }
+.vm-client-row { display:flex; align-items:center; justify-content:space-between;
+  gap: 12px; padding: 12px 4px; border-bottom:1px solid var(--md-outline-variant); }
+.vm-client-row:last-child { border-bottom:0; }
+.vm-client-row strong { display:block; font-size:14px; }
+.vm-client-row small { display:block; color:var(--md-on-surface-variant); font-size:11px; }
+.vm-hint { border-radius:12px; padding:12px; margin:12px 0;
+  background:rgba(208,188,255,.07); color:var(--md-on-surface-variant); font-size:12px; }
+@media(max-width:360px) { .vm-grid {gap:7px;} .vm-metric {padding:10px;}
+  .vm-metric strong {font-size:15px;} .vm-overview {padding:13px;} }
+@media(prefers-reduced-motion:reduce) { .vm-overview * {scroll-behavior:auto!important;transition:none!important;} }
