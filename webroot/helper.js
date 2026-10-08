@@ -638,7 +638,7 @@ function convert_chain_uris_to_xray_json(hop1Uri, hop2Uri, optional_settings) {
 // would have matched then simply follows the remaining rules / default proxy.
 const ROUTING_BUILTIN_TAGS = ["proxy", "direct", "block"];
 
-function _buildCustomRoutingRules(routingRules, nodeTagByRemark) {
+function _buildCustomRoutingRules(routingRules, nodeTagByRemark, gameMode = false) {
     if (!Array.isArray(routingRules)) return [];
     nodeTagByRemark = nodeTagByRemark || {};
 
@@ -649,6 +649,10 @@ function _buildCustomRoutingRules(routingRules, nodeTagByRemark) {
 
     return routingRules
         .filter(r => r && r.enabled !== false)
+        // Only skip the upstream's BUILT-IN UDP/443 block. Never override
+        // user-authored blocking rules when Game Mode is on.
+        .filter(r => !(gameMode && r.remarks === "阻断udp443" && String(r.port) === "443"
+          && r.network === "udp" && r.outboundTag === "block"))
         .map(r => {
             const wanted = r.outboundTag || "proxy";
             let outTag;
@@ -1804,7 +1808,7 @@ function convert_uri_to_xray_json(uri, optional_settings) {
                 // User-defined routing rules (Routing Settings tab). Evaluated in the
                 // order the user arranged them, above the private-network bypass so a
                 // custom rule can override it if the user explicitly wants to.
-                ..._buildCustomRoutingRules(settings.routingRules, ruleNodes.tagByRemark),
+                ..._buildCustomRoutingRules(settings.routingRules, ruleNodes.tagByRemark, settings.gameMode === true),
                 {
                     "type": "field",
                     "ip": [
