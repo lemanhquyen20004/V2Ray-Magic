@@ -109,8 +109,9 @@ case "$ACTION" in
             is_client "$ip" || { echo "Hotspot client is not identifiable" >&2; exit 2; }
         fi
         desired=$3
-        set -- $(get_policy "$ip")
-        quota=$1; rate=$2
+        old=$(get_policy "$ip")
+        quota=$(printf '%s\n' "$old" | cut -d ' ' -f1)
+        rate=$(printf '%s\n' "$old" | cut -d ' ' -f2)
         case "$ACTION" in
             set-quota) quota=$desired; valid_int "$quota" 0 1048576 || exit 2 ;;
             set-speed) rate=$desired; valid_int "$rate" 0 1000000 || exit 2 ;;
