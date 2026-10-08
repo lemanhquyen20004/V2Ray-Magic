@@ -3105,7 +3105,7 @@ function syncQueryStrategyHint() {
 }
 
 function bindSettingsToFormView() {
-    currentLang = advSettings.lang || "en";
+    currentLang = advSettings.lang || "vi";
     applyI18n();
 
     document.getElementById('set-loglevel').value = advSettings.loglevel || "none";
